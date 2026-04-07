@@ -25,18 +25,22 @@ That's **3 manual touchpoints per feature**. If your PRD has 10 features, you're
 
 ## The Solution
 
-Autopilot takes over Phase 2 entirely:
+Autopilot takes over Phase 2 entirely. Each feature is dispatched as a **subagent** — this uses Superpowers' native `<SUBAGENT-STOP>` mechanism, which automatically skips brainstorming (since the PRD is already its output).
 
 ```
 PRD.md → autopilot reads features
-       → writing-plans (auto)
-       → subagent-driven-development (auto)
-       → [stuck?] → consults external model for a second opinion
-       → marks done → commits → next feature → repeat
+       → dispatches subagent per feature:
+           → design review (resolves ambiguities via consultant)
+           → writing-plans (auto)
+           → subagent-driven-development (auto)
+           → tests
+       → main session commits → next feature → repeat
        → [all done] → summary report + PR
 ```
 
 **Zero manual interventions. You sleep, it ships.**
+
+> **Note:** Without a PRD, Superpowers works normally — brainstorming runs as usual, you interact with it, and it produces the PRD. Autopilot only kicks in when you have a PRD ready.
 
 ---
 
@@ -96,8 +100,12 @@ Claude will:
 2. Ask which consultant to use when stuck (Claude Opus recommended)
 3. Create `autopilot-state.json` to track progress
 4. Create a git branch `autopilot/YYYYMMDD`
-5. Loop through each feature: plan → execute → test → commit
-6. Consult the chosen external model when stuck
+5. For each feature, dispatch a subagent that:
+   - Reviews the spec for ambiguities (consults external model to resolve)
+   - Creates a plan via `writing-plans`
+   - Executes via `subagent-driven-development`
+   - Runs tests
+6. Main session commits each completed feature
 7. Print a summary report when done
 
 ---
@@ -142,16 +150,22 @@ Autopilot won't go rogue:
 - **Test regression protection** — snapshots your test suite before each feature; automatically reverts if existing tests break
 - **Per-feature commits** — each feature is its own git commit, easy to revert individually
 - **Dedicated branch** — never touches `main` directly
+- **Subagent isolation** — each feature runs in a fresh subagent, preventing context bleed between features
 
 ---
 
 ## How It Handles Being Stuck
 
-When a plan fails validation or a subagent fails twice on the same task, autopilot consults an external model for a second opinion — a different model means a genuinely different perspective, not an echo chamber. Supported consultants: `claude` (Opus, recommended), `codex`, `gemini`, `gh copilot`, `cursor`.
+The subagent consults an external model in three situations:
+1. **Ambiguous spec** — contradictory or vague requirements in the PRD
+2. **Plan validation fails** — generated plan has gaps or placeholders
+3. **Task fails twice** — same implementation task fails on retry
+
+A different model means a genuinely different perspective, not an echo chamber. Supported consultants: `claude` (Opus, recommended), `codex`, `gemini`, `gh copilot`, `cursor`.
 
 If no external CLI is available, Claude reasons through it independently and documents its thinking in the state file.
 
-All consultations are logged in `autopilot-state.json`.
+All consultations are logged in `autopilot-state.json` with timestamps and full Q&A.
 
 ---
 
