@@ -61,6 +61,7 @@ PRD.md → autopilot reads features
 cd your-project
 mkdir -p .claude/skills
 git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
+.claude/skills/superpowers-autopilot/scripts/setup.sh
 ```
 
 ### Global (available in all your projects)
@@ -68,6 +69,20 @@ git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superp
 ```bash
 git clone https://github.com/rares77/superpowers-autopilot ~/.claude/skills/superpowers-autopilot
 ```
+
+For each project where you want to use autopilot, run the setup script from the project root:
+
+```bash
+~/.claude/skills/superpowers-autopilot/scripts/setup.sh
+```
+
+### What does setup.sh do?
+
+It adds a single permission rule to `.claude/settings.json` that prevents `superpowers:brainstorming` from auto-triggering during the autopilot loop. **You can still invoke brainstorming manually** with `/brainstorming` — it only blocks the auto-trigger.
+
+This is needed because brainstorming's aggressive `"MUST use before any creative work"` directive hijacks the autopilot flow. Claude Code has no skill priority system, so a permission deny is the only reliable way to prevent this.
+
+To undo: `./scripts/setup.sh --uninstall`
 
 ### Keeping it updated
 
@@ -179,7 +194,8 @@ superpowers-autopilot/
 │   ├── state-manager.sh              # Read/write autopilot-state.json
 │   ├── consult.sh                    # Wrapper for consultant CLIs
 │   ├── detect-consultants.sh         # Detect available consultant CLIs
-│   └── check-tests.sh                # Run tests, detect regressions
+│   ├── check-tests.sh                # Run tests, detect regressions
+│   └── setup.sh                      # Configure project settings (run once)
 ├── references/
 │   ├── prd-formats.md                # Supported PRD formats
 │   ├── consultant-patterns.md        # When/how to consult external models
