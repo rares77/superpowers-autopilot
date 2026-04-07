@@ -78,11 +78,11 @@ If `>= 3` → STOP, print blocker summary, wait for user input.
    - At least one test per implementation task?
    - Referenced file paths exist or will be created?
    - No circular task dependencies?
-6. If validation fails → **Phase 2b: Codex Consultation**, then retry planning once
+6. If validation fails → **Phase 2b: Consultant Conversation**, then retry planning once
 
 ---
 
-## Phase 2b: Codex Consultation
+## Phase 2b: Consultant Conversation
 
 Trigger when:
 - Plan validation fails
@@ -90,18 +90,39 @@ Trigger when:
 - Test suite regresses after implementation
 - Requirement in PRD is ambiguous
 
+**Before calling the consultant**, print the conversation header:
+```
+┌─ 🤝 Consulting <consultant> — <trigger reason> [Feature: <feature-id>]
+│  Q: <the exact question being sent>
+│  Context: <one-line summary of context snippet>
+```
+
 How to consult:
 ```bash
 AUTOPILOT_CONSULTANT=$(./scripts/state-manager.sh get consultant) \
-  ./scripts/codex-consult.sh "<formatted question>" "<context snippet>"
+  ./scripts/consult.sh "<formatted question>" "<context snippet>"
 ```
 
-See `references/codex-patterns.md` for question templates per situation.
+See `references/consultant-patterns.md` for question templates per situation.
+
+**After receiving the answer**, print the response and outcome:
+```
+│  A: <consultant answer, full text>
+└─ ✔ Applying answer — retrying <plan/task/revert>
+```
+
+If the consultant is unavailable, print:
+```
+┌─ 🤝 Consulting <consultant> — unavailable, self-reasoning [Feature: <feature-id>]
+│  Q: <question>
+│  A: <Claude's own reasoning>
+└─ ✔ Applying self-reasoning — retrying <plan/task/revert>
+```
 
 After consulting:
 - Log result to `codex_consultations[]` in state with timestamp
 - Apply the answer and retry the failed step
-- If Codex is unavailable (not installed), reason through it independently
+- If consultant is unavailable, reason through it independently and log as `"self-consultation"`
 
 ---
 
@@ -110,7 +131,7 @@ After consulting:
 1. **Invoke `superpowers:subagent-driven-development`** with the validated plan
 2. For each task subagent:
    - Track pass/fail
-   - If a task fails twice → trigger Phase 2b (Codex), then retry once more
+   - If a task fails twice → trigger Phase 2b (Consultant), then retry once more
    - If still failing → skip task, mark feature as `"partial"`, continue
 3. After all tasks complete → run `scripts/check-tests.sh`
    - **All pass** → proceed to Phase 4
@@ -186,10 +207,10 @@ Use `scripts/state-manager.sh` to read/write safely:
 |------|---------|
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write autopilot-state.json |
-| `scripts/codex-consult.sh` | Wrapper for `codex -p` with timeout |
+| `scripts/consult.sh` | Wrapper for consultant CLIs with timeout |
 | `scripts/check-tests.sh` | Run test suite, return pass/fail + diff |
 | `references/prd-formats.md` | Supported PRD formats and parsing rules |
-| `references/codex-patterns.md` | When/how to consult Codex per situation |
+| `references/consultant-patterns.md` | When/how to consult per situation |
 | `references/safety-rails.md` | Circuit breaker, rollback, cost guard logic |
 | `templates/autopilot-state.template.json` | Initial state file structure |
 | `templates/feature-context.template.md` | Per-feature context injection prompt |
