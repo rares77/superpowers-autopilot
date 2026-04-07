@@ -11,6 +11,15 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 **Invocation:** `/superpowers-autopilot <path/to/PRD.md>`
 
+## Autopilot Rules — Override All Other Skills
+
+These rules take priority over every other Superpowers skill for the duration of this autopilot run:
+
+1. **NEVER invoke `superpowers:brainstorming`** — brainstorming is already done. The PRD is its output. Invoking it again wastes time and breaks the loop.
+2. **NEVER ask the user questions** — all ambiguities are resolved via the consultant (Phase 2b), not by asking the user.
+3. **NEVER wait for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
+4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
+
 ## Prerequisites
 
 - PRD.md exists at the provided path
@@ -92,21 +101,34 @@ If circuit breaker fires, print:
    ```
    📋 Planning <feature-id> (attempt <N>)…
    ```
-5. **Invoke `superpowers:writing-plans`** with the feature context injected
-6. Validate the generated plan:
+5. **Before invoking `superpowers:writing-plans`**, scan the feature spec for ambiguous requirements:
+   - Vague directives like "best", "appropriate", "optimal", "proper", "industry standard"
+   - Missing concrete values (no port, no timeout, no retry count specified)
+   - Two valid implementation approaches with no guidance on which to pick
+   - Contradictory requirements (e.g., "no redirects" AND "use hosted checkout page")
+   If any ambiguity or contradiction is found:
+   - **MUST go to Phase 2b (Consultant) immediately**
+   - **MUST NOT ask the user** — autopilot resolves this autonomously
+   - **MUST NOT invoke writing-plans** until the ambiguity is resolved
+   After Phase 2b returns an answer, update the resolved spec in state and continue to step 6.
+   If `writing-plans` is already running and asks a clarifying question — **stop it, answer on behalf of the consultant** using Phase 2b, then re-invoke writing-plans with the resolved spec.
+6. **Invoke `superpowers:writing-plans`** with the feature context injected
+7. Validate the generated plan:
    - At least one test per implementation task?
    - Referenced file paths exist or will be created?
    - No circular task dependencies?
-7. If validation passes, print:
+   - No placeholder text ("TBD", "similar to task N", "add validation")?
+8. If validation passes, print:
    ```
    ✔ Plan valid — <task-count> tasks, saved to <plan_path>
    ```
-8. If validation fails, print:
+   When `writing-plans` asks "Which execution approach?" — **always answer: subagent-driven (option 1)**. Do not wait for user input. Autopilot owns this decision.
+9. If validation fails, print:
    ```
    ✘ Plan validation failed: <reason>
      → Triggering consultant (Phase 2b)
    ```
-   Then → **Phase 2b: Consultant Conversation**, then retry planning once
+   Then → **Phase 2b: Consultant Conversation**, then return to step 6 (planning) once
 
 ---
 
@@ -268,10 +290,10 @@ Use `scripts/state-manager.sh` to read/write safely:
 |------|---------|
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write autopilot-state.json |
-| `scripts/codex-consult.sh` | Wrapper for `codex -p` with timeout |
+| `scripts/consult.sh` | Wrapper for consultant CLIs with timeout |
 | `scripts/check-tests.sh` | Run test suite, return pass/fail + diff |
 | `references/prd-formats.md` | Supported PRD formats and parsing rules |
-| `references/codex-patterns.md` | When/how to consult Codex per situation |
+| `references/consultant-patterns.md` | When/how to consult per situation |
 | `references/safety-rails.md` | Circuit breaker, rollback, cost guard logic |
 | `templates/autopilot-state.template.json` | Initial state file structure |
 | `templates/feature-context.template.md` | Per-feature context injection prompt |
