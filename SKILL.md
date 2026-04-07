@@ -1,13 +1,13 @@
 ---
 name: superpowers-autopilot
-description: Use when the user wants to implement all features from a PRD.md automatically with zero manual intervention — "run autopilot on my PRD", "implement everything from PRD", "autopilot mode", "PRD to production", or wants Claude to work through a feature list unattended. Orchestrates superpowers:writing-plans and superpowers:subagent-driven-development in a loop per feature, consulting Codex CLI when stuck. Use this skill even if the user just drops a PRD.md path and says "go".
+description: Use when the user wants to implement all features from a PRD.md automatically with zero manual intervention — "run autopilot on my PRD", "implement everything from PRD", "autopilot mode", "PRD to production", or wants Claude to work through a feature list unattended. Orchestrates superpowers:writing-plans and superpowers:subagent-driven-development in a loop per feature, consulting an external CLI when stuck. Use this skill even if the user just drops a PRD.md path and says "go".
 ---
 
 # Superpowers Autopilot
 
 ## Overview
 
-Autonomous outer loop that implements every feature in a PRD.md with zero human intervention. You read the PRD, queue features, plan and execute each one using Superpowers skills, consult Codex when stuck, and exit with a summary report.
+Autonomous outer loop that implements every feature in a PRD.md with zero human intervention. You read the PRD, queue features, plan and execute each one using Superpowers skills, consult an external CLI when stuck, and exit with a summary report.
 
 **Invocation:** `/superpowers-autopilot <path/to/PRD.md>`
 
@@ -16,7 +16,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 - PRD.md exists at the provided path
 - Project is a git repository (clean working tree preferred)
 - Superpowers skills available: `superpowers:writing-plans`, `superpowers:subagent-driven-development`
-- Optional: `codex` CLI installed for second-opinion consultations (falls back gracefully)
+- Optional: a consultant CLI installed for second-opinion consultations (falls back gracefully)
 
 ---
 

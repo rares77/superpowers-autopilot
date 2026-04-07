@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# codex-consult.sh — Get a "second opinion" from an external CLI model
-# Usage: ./scripts/codex-consult.sh "<question>" "<context>"
+# consult.sh — Get a "second opinion" from an external CLI model
+# Usage: ./scripts/consult.sh "<question>" "<context>"
 # Output: Model's answer to stdout
 # Exit codes: 0 = success, 2 = consultant unavailable/failed
 #
 # Consultant is read from AUTOPILOT_CONSULTANT env var (set in autopilot-state.json).
-# Supported values: codex | gemini | claude | none
+# Supported values: codex | gemini | claude | copilot | cursor | none
 
 set -euo pipefail
 
@@ -50,13 +50,27 @@ case "$CONSULTANT" in
     echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-opus-4-6
     ;;
 
+  copilot)
+    if ! command -v gh &>/dev/null || ! gh extension list 2>/dev/null | grep -q copilot; then
+      echo "Error: gh copilot extension not found. Install with: gh extension install github/gh-copilot" >&2; exit 2
+    fi
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" gh copilot explain -
+    ;;
+
+  cursor)
+    if ! command -v cursor &>/dev/null; then
+      echo "Error: cursor CLI not found." >&2; exit 2
+    fi
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" cursor -p
+    ;;
+
   none)
     echo "No external consultant configured. Claude will reason independently." >&2
     exit 2
     ;;
 
   *)
-    echo "Error: Unknown consultant '$CONSULTANT'. Valid: codex | gemini | claude | none" >&2
+    echo "Error: Unknown consultant '$CONSULTANT'. Valid: codex | gemini | claude | copilot | cursor | none" >&2
     exit 1
     ;;
 esac

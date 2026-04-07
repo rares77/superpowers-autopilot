@@ -1,7 +1,7 @@
-# Codex Consultation Patterns
+# Consultant Patterns
 
-When to call Codex and how to phrase the question effectively.
-Used by `scripts/codex-consult.sh` and referenced in SKILL.md Phase 2b.
+When to call the consultant and how to phrase the question effectively.
+Used by `scripts/consult.sh` and referenced in SKILL.md Phase 2b.
 
 ---
 
@@ -68,7 +68,7 @@ How do I fix the regression without reverting the feature?
 ## Formatting Rules
 
 1. **Be specific** — include actual error messages, not paraphrases
-2. **Cap code snippets** at 50 lines — Codex doesn't need the whole file
+2. **Cap code snippets** at 50 lines — the consultant doesn't need the whole file
 3. **One question per call** — don't bundle multiple decisions
 4. **State constraints upfront** — "without changing the public API", "must work in Node 18"
 5. **Ask for the reasoning** — "and why?" helps you evaluate if the answer applies
@@ -86,11 +86,11 @@ This creates an audit trail in `autopilot-state.json` and increments `total_code
 
 ---
 
-## If Codex Is Unavailable
+## If Consultant Is Unavailable
 
-`codex-consult.sh` exits with code 2 when no consultant is available.
+`consult.sh` exits with code 2 when no consultant is available.
 In this case: reason through it independently using Claude's own knowledge,
 document your reasoning in the state as a "self-consultation", and continue.
 
-The key insight is that Codex provides a *different perspective*, not necessarily a *better* one.
+The key insight is that an external consultant provides a *different perspective*, not necessarily a *better* one.
 Claude's own reasoning is a valid fallback.
