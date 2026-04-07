@@ -1,0 +1,16 @@
+{
+  "prd_path": "",
+  "started_at": "",
+  "branch": "",
+  "features": [],
+  "circuit_breaker": {
+    "consecutive_failures": 0,
+    "max_before_pause": 3
+  },
+  "stats": {
+    "features_done": 0,
+    "features_failed": 0,
+    "features_total": 0,
+    "total_codex_consultations": 0
+  }
+}

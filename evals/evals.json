@@ -1,0 +1,23 @@
+{
+  "skill_name": "superpowers-autopilot",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "ok am scris PRD-ul pentru side project-ul meu, e la docs/PRD.md. vrei sa implementezi tot ce e acolo? nu vreau sa stau eu sa aprob fiecare step, fa-o autonom",
+      "expected_output": "Claude parseaza PRD-ul, creeaza autopilot-state.json, face un branch nou, afiseaza feature queue, si porneste loop-ul: planning cu writing-plans, executie cu subagent-driven-development, commit per feature, final report. Nu cere aprobare intre features.",
+      "files": ["evals/fixtures/simple-prd.md", "evals/fixtures/simple-project/"]
+    },
+    {
+      "id": 2,
+      "prompt": "/superpowers-autopilot PRD.md",
+      "expected_output": "Claude recunoaste invocarea directa a skill-ului, parseaza PRD.md din root, initializeaza state, porneste autopilot loop. Comportamentul e identic cu promptul verbose — skill-ul trebuie sa triggereze si la invocarea scurta.",
+      "files": ["evals/fixtures/simple-prd.md"]
+    },
+    {
+      "id": 3,
+      "prompt": "am un PRD la product/requirements.md cu 4 features. primul feature (auth) e deja implementat, vrei sa continui de unde am ramas? circuit breaker-ul sa se opreasca dupa 2 failures, nu 3",
+      "expected_output": "Claude citeste PRD-ul, initializeaza state cu F1 marcat ca done (sau il detecteaza ca implemented), configureaza circuit breaker la max_before_pause=2, si continua cu F2, F3, F4. Nu reimplementeaza F1.",
+      "files": ["evals/fixtures/complex-prd.md", "evals/fixtures/partial-project/"]
+    }
+  ]
+}
