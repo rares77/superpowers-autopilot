@@ -96,7 +96,13 @@ If circuit breaker fires, print:
    - Vague directives like "best", "appropriate", "optimal", "proper", "industry standard"
    - Missing concrete values (no port, no timeout, no retry count specified)
    - Two valid implementation approaches with no guidance on which to pick
-   If any ambiguity is found, **do NOT invoke writing-plans yet** — go directly to Phase 2b (Consultant) with the question, then return here with the resolved spec.
+   - Contradictory requirements (e.g., "no redirects" AND "use hosted checkout page")
+   If any ambiguity or contradiction is found:
+   - **MUST go to Phase 2b (Consultant) immediately**
+   - **MUST NOT ask the user** — autopilot resolves this autonomously
+   - **MUST NOT invoke writing-plans** until the ambiguity is resolved
+   After Phase 2b returns an answer, update the resolved spec in state and continue to step 6.
+   If `writing-plans` is already running and asks a clarifying question — **stop it, answer on behalf of the consultant** using Phase 2b, then re-invoke writing-plans with the resolved spec.
 6. **Invoke `superpowers:writing-plans`** with the feature context injected
 7. Validate the generated plan:
    - At least one test per implementation task?
