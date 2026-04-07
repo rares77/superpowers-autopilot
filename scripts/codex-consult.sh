@@ -45,9 +45,9 @@ case "$CONSULTANT" in
     if ! command -v claude &>/dev/null; then
       echo "Error: claude CLI not found." >&2; exit 2
     fi
-    # Note: Claude consulting Claude is same-model, but still useful
-    # as an isolated context — no conversation history, fresh perspective.
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p
+    # Use Opus for second opinions — more capable than the orchestrating model,
+    # giving a genuine upgrade in reasoning, not just an isolated context.
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-opus-4-6
     ;;
 
   none)

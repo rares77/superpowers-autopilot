@@ -23,16 +23,10 @@ for cli in codex gemini; do
   fi
 done
 
-# Recommended priority: codex > gemini > claude
-# (codex/gemini = different model = genuinely fresh perspective)
-# claude = same model but isolated context, valid fallback
+# Always recommend claude (Opus) as default — it's a more capable model
+# than the orchestrating instance, giving a real reasoning upgrade.
+# codex/gemini are alternatives if the user prefers a different model family.
 recommended="claude"
-for preferred in codex gemini; do
-  if command -v "$preferred" &>/dev/null; then
-    recommended="$preferred"
-    break
-  fi
-done
 
 available_json=$(IFS=,; echo "[${available[*]:-}]")
 unavailable_json=$(IFS=,; echo "[${unavailable[*]:-}]")

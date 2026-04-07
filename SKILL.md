@@ -28,14 +28,16 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
    - **Ask the user to choose** (or confirm the recommended default):
      ```
      🔍 Second-opinion consultant detection:
-       ✅ codex   — available (recommended: different model = fresh perspective)
-       ✅ gemini  — available
-       ✅ claude  — always available (same model, isolated context)
+       ✅ claude (Opus) — always available ⭐ recommended
+                          more capable model = genuine reasoning upgrade
+       ✅ codex          — available (different model family)
+       ❌ gemini         — not found
 
-     Which should I consult when stuck? [codex / gemini / claude]
-     Default: codex (press Enter to confirm)
+     Which should I consult when stuck? [claude / codex]
+     Default: claude/Opus (press Enter to confirm)
      ```
-   - `claude` este întotdeauna disponibil ca fallback — rulăm deja în Claude Code
+   - `claude` (Opus) este întotdeauna recomandat — orchestratorul rulează pe Sonnet,
+     Opus oferă un upgrade real de raționament, nu doar context izolat
    - Save the chosen consultant to state as `consultant`
 3. Initialize `autopilot-state.json` using `templates/autopilot-state.template.json`
 4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
