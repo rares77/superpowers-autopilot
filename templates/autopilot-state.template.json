@@ -2,6 +2,7 @@
   "prd_path": "",
   "started_at": "",
   "branch": "",
+  "consultant": "none",
   "features": [],
   "circuit_breaker": {
     "consecutive_failures": 0,
