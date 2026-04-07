@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Generated at runtime by the skill
+autopilot-state.json
+.autopilot-test-snapshot.json
+
+# Python cache from scripts
+__pycache__/
+*.pyc
