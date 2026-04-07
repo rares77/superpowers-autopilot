@@ -11,6 +11,15 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 **Invocation:** `/superpowers-autopilot <path/to/PRD.md>`
 
+## Autopilot Rules — Override All Other Skills
+
+These rules take priority over every other Superpowers skill for the duration of this autopilot run:
+
+1. **Brainstorming questions are answered by the consultant, not the user** — when `superpowers:brainstorming` asks a clarifying question, intercept it immediately, send it to the consultant via Phase 2b, then inject the consultant's answer back into brainstorming as if the user responded. The user is never prompted.
+2. **NEVER ask the user questions** — all ambiguities and clarifications go to the consultant (Phase 2b).
+3. **NEVER wait for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
+4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
+
 ## Prerequisites
 
 - PRD.md exists at the provided path
@@ -92,17 +101,14 @@ If circuit breaker fires, print:
    ```
    📋 Planning <feature-id> (attempt <N>)…
    ```
-5. **Before invoking `superpowers:writing-plans`**, scan the feature spec for ambiguous requirements:
-   - Vague directives like "best", "appropriate", "optimal", "proper", "industry standard"
-   - Missing concrete values (no port, no timeout, no retry count specified)
-   - Two valid implementation approaches with no guidance on which to pick
-   - Contradictory requirements (e.g., "no redirects" AND "use hosted checkout page")
-   If any ambiguity or contradiction is found:
-   - **MUST go to Phase 2b (Consultant) immediately**
-   - **MUST NOT ask the user** — autopilot resolves this autonomously
-   - **MUST NOT invoke writing-plans** until the ambiguity is resolved
-   After Phase 2b returns an answer, update the resolved spec in state and continue to step 6.
-   If `writing-plans` is already running and asks a clarifying question — **stop it, answer on behalf of the consultant** using Phase 2b, then re-invoke writing-plans with the resolved spec.
+5. **Invoke `superpowers:brainstorming`** if the feature spec has ambiguities, contradictions, or design decisions to resolve:
+   - When brainstorming asks a clarifying question → **intercept it, do NOT forward to user**
+   - Send the question to the consultant via Phase 2b
+   - Print the `┌─ 🤝 Consulting` block as usual
+   - Inject the consultant's answer back into brainstorming as the user's response
+   - Repeat for every question brainstorming asks
+   - When brainstorming asks for design approval → **auto-approve** using the consultant's answers as justification
+   - When brainstorming finishes → its spec becomes the resolved feature context
 6. **Invoke `superpowers:writing-plans`** with the feature context injected
 7. Validate the generated plan:
    - At least one test per implementation task?
