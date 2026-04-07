@@ -183,4 +183,4 @@ MIT — use it, fork it, build on it.
 
 ---
 
-*Built for the Claude Code + Superpowers ecosystem — Cluj-Napoca, April 2026*
+*Built for the Claude Code + Superpowers ecosystem*
