@@ -11,14 +11,12 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 **Invocation:** `/superpowers-autopilot <path/to/PRD.md>`
 
-## Autopilot Rules — Override All Other Skills
+## Autopilot Rules
 
-These rules take priority over every other Superpowers skill for the duration of this autopilot run:
-
-1. **NEVER invoke `superpowers:brainstorming` as a skill** — invoking it transfers control and the user gets asked questions directly. Instead, autopilot performs its own design review in Phase 2 step 5 (see below) and routes all questions to the consultant.
-2. **NEVER ask the user questions** — all ambiguities and clarifications go to the consultant (Phase 2b).
-3. **NEVER wait for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
-4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
+1. **Each feature is dispatched as a subagent** — the main session manages the loop, state, and commits. A fresh subagent handles planning + execution for each feature. This automatically skips brainstorming (Superpowers' `<SUBAGENT-STOP>` mechanism).
+2. **Subagents NEVER ask the user questions** — all ambiguities go to the consultant (Phase 2b) via `scripts/consult.sh`.
+3. **The main session NEVER waits for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
+4. **Subagents ALWAYS choose subagent-driven execution** when `writing-plans` asks.
 
 ## Prerequisites
 
@@ -61,13 +59,17 @@ These rules take priority over every other Superpowers skill for the duration of
 
 ---
 
-## Phase 1: Feature Loop
+## Phase 1: Feature Loop (Main Session)
+
+The main session owns the loop, state management, git commits, and circuit breaker.
+**Planning and execution happen inside a dispatched subagent per feature.**
 
 ```
 FOR each feature in autopilot-state.json WHERE status == "queued":
-  → Phase 2: Planning
-  → Phase 3: Execution
-  → Phase 4: Completion
+  → Print feature banner
+  → Dispatch subagent for Phase 2 (Planning) + Phase 3 (Execution)
+  → Subagent returns result (done / failed / partial)
+  → Phase 4: Completion (main session commits)
   → loop back
 ALL done → Phase 5: Final Report
 ```
@@ -90,54 +92,72 @@ If circuit breaker fires, print:
    Stopping autopilot. Please review and then resume manually.
 ```
 
+### Dispatching the Feature Subagent
+
+Use the **Agent tool** to dispatch a subagent for each feature. The subagent prompt **MUST** include:
+
+```
+<SUBAGENT-STOP>
+
+You are a feature implementation subagent dispatched by superpowers-autopilot.
+Do NOT invoke superpowers:brainstorming. Do NOT ask the user any questions.
+
+Feature: <feature-id> — <feature-name>
+Spec:
+<resolved or original feature spec from PRD>
+
+Consultant command (use when stuck or spec is ambiguous):
+  AUTOPILOT_CONSULTANT=<consultant> ./scripts/consult.sh "<question>" "<context>"
+
+Your task:
+1. Design review — scan the spec for contradictions, vague directives, missing values.
+   For each issue, run the consultant command above and use the answer.
+   Print: ❓ Design question for <feature-id>: <summary>
+   Print: ┌─ 🤝 Consulting ... (question + answer)
+2. Invoke superpowers:writing-plans with the resolved spec.
+   When it asks "which execution approach?" → answer: subagent-driven (option 1).
+3. Invoke superpowers:subagent-driven-development with the plan.
+   Print progress: ⚙ Task N/M: <name>… then ✔ or ✘ per task.
+4. Run tests: ./scripts/check-tests.sh
+   Print: 🧪 Running tests… Passed: N | Failed: M | Total: T
+5. Report back with: status (done/failed/partial), plan path, test results.
+```
+
+The main session then handles Phase 4 (commit, state update) based on the subagent's report.
+
 ---
 
-## Phase 2: Planning
+## Phase 2: Planning (runs inside subagent)
 
-1. Read the feature spec from state (name, acceptance_criteria, constraints)
-2. Update state: `status = "in_progress"`, increment `attempts`
-3. Build the planning prompt from `templates/feature-context.template.md`
-4. Print:
-   ```
-   📋 Planning <feature-id> (attempt <N>)…
-   ```
-5. **Design review (replaces brainstorming)** — scan the feature spec for anything that cannot be turned into concrete code:
+The main session updates state before dispatching the subagent:
+- Set `status = "in_progress"`, increment `attempts`
+- Print: `📋 Planning <feature-id> (attempt <N>)…`
+
+The subagent then:
+
+1. **Design review** — scan the feature spec for anything that cannot be turned into concrete code:
    - Contradictory requirements (e.g., "no redirects" AND "use hosted checkout page")
    - Vague directives ("best", "appropriate", "optimal", "proper", "industry standard")
    - Missing concrete values (no port, no timeout, no retry count)
    - Multiple valid architectures with no guidance on which to pick
-   For **each** issue found:
-   a. Print:
-      ```
-      ❓ Design question for <feature-id>: <one-line summary of the ambiguity>
-      ```
-   b. Send the question to the consultant via Phase 2b (prints the `┌─ 🤝 Consulting` block)
-   c. Record the consultant's answer as a **design decision**
-   After all questions are resolved, build a **resolved spec** that replaces the ambiguous parts with the consultant's concrete answers. Print:
+   For **each** issue found, consult via `scripts/consult.sh` and print:
+   ```
+   ❓ Design question for <feature-id>: <one-line summary>
+   ┌─ 🤝 Consulting <consultant> — design_question [Feature: <feature-id>]
+   │  Q: <question>
+   │  A: <answer>
+   └─ ✔ Applying answer
+   ```
+   After all resolved, print:
    ```
    ✔ Design review complete — <N> question(s) resolved via consultant
    ```
-   If no ambiguities are found, print:
-   ```
-   ✔ Design review — spec is clear, no questions needed
-   ```
-6. **Invoke `superpowers:writing-plans`** with the resolved feature spec (not the original PRD text)
-7. Validate the generated plan:
+2. **Invoke `superpowers:writing-plans`** with the resolved spec
+   - When it asks "Which execution approach?" → answer: subagent-driven (option 1)
+3. **Validate** the generated plan:
    - At least one test per implementation task?
-   - Referenced file paths exist or will be created?
-   - No circular task dependencies?
-   - No placeholder text ("TBD", "similar to task N", "add validation")?
-8. If validation passes, print:
-   ```
-   ✔ Plan valid — <task-count> tasks, saved to <plan_path>
-   ```
-   When `writing-plans` asks "Which execution approach?" — **always answer: subagent-driven (option 1)**. Do not wait for user input. Autopilot owns this decision.
-9. If validation fails, print:
-   ```
-   ✘ Plan validation failed: <reason>
-     → Triggering consultant (Phase 2b)
-   ```
-   Then → **Phase 2b: Consultant Conversation**, then return to step 6 (planning) once
+   - No placeholder text ("TBD", "similar to task N")?
+   - If validation fails → consult via `scripts/consult.sh`, retry once
 
 ---
 
@@ -185,55 +205,45 @@ After consulting:
 
 ---
 
-## Phase 3: Execution
+## Phase 3: Execution (runs inside subagent)
+
+The subagent continues after planning:
 
 1. Print:
    ```
    🔨 Executing <feature-id> — invoking subagent-driven-development…
    ```
 2. **Invoke `superpowers:subagent-driven-development`** with the validated plan
-3. For each task subagent, print on start and completion:
+3. For each task, print progress:
    ```
      ⚙ Task <task-index>/<task-total>: <task-name>… [running]
-   ```
-   Then either:
-   ```
      ✔ Task <task-index>/<task-total>: <task-name> — done
    ```
-   or:
+   Or on failure:
    ```
      ✘ Task <task-index>/<task-total>: <task-name> — failed (attempt <N>)
      Error: <brief error summary>
-     → Triggering consultant (Phase 2b)
    ```
-4. If a task still fails after consultant retry, print:
-   ```
-   ⚠ Task <task-name> skipped after 2 failures — feature marked partial
-   ```
-5. After all tasks complete → run `scripts/check-tests.sh` and print:
+   If a task fails twice → consult via `scripts/consult.sh`, retry once.
+   If still failing → skip task, mark feature as `"partial"`.
+4. After all tasks → run `scripts/check-tests.sh` and print:
    ```
    🧪 Running tests…
      Passed: <N> | Failed: <M> | Total: <T>
    ```
-   Then:
-   - **All pass** → proceed to Phase 4
-   - **Regression detected**, print and act:
-     ```
-     ⚠ Regression detected — <failing-test-names>
-       Reverting last commit and consulting…
-     ```
-     → git revert last commit, trigger Phase 2b, retry once
-   - **Still failing** → print and update state:
-     ```
-     ❌ Feature <feature-id> failed — marking failed, moving to next
-        Consecutive failures: <N>/3
-     ```
-     increment `consecutive_failures`, skip to next feature
+5. **Report back to main session** with:
+   - `status`: `done` | `failed` | `partial`
+   - `plan_path`: where the plan was saved
+   - `test_results`: pass/fail counts
+   - `error_summary`: if failed, what went wrong
 
 ---
 
-## Phase 4: Feature Completion
+## Phase 4: Feature Completion (Main Session)
 
+After the subagent returns, the main session handles the result:
+
+**If subagent reports `done`:**
 1. Stage and commit:
    ```bash
    git add -A
@@ -241,11 +251,29 @@ After consulting:
    ```
 2. Capture `commit_sha` in state
 3. Update state: `status = "done"`, `consecutive_failures = 0`
-4. Print progress:
+4. Print:
    ```
    ✅ Feature <N>/<total>: <name> — done
    ```
-5. → Back to Phase 1
+
+**If subagent reports `failed`:**
+1. Revert uncommitted changes: `git checkout -- .`
+2. Update state: `status = "failed"`, increment `consecutive_failures`
+3. Print:
+   ```
+   ❌ Feature <feature-id> failed — <error_summary>
+      Consecutive failures: <N>/3
+   ```
+
+**If subagent reports `partial`:**
+1. Commit what was completed
+2. Update state: `status = "partial"`, reset `consecutive_failures`
+3. Print:
+   ```
+   ⚠ Feature <feature-id> partially complete — some tasks skipped
+   ```
+
+→ Back to Phase 1
 
 ---
 
