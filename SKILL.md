@@ -15,7 +15,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 These rules take priority over every other Superpowers skill for the duration of this autopilot run:
 
-1. **Brainstorming questions are answered by the consultant, not the user** — when `superpowers:brainstorming` asks a clarifying question, intercept it immediately, send it to the consultant via Phase 2b, then inject the consultant's answer back into brainstorming as if the user responded. The user is never prompted.
+1. **NEVER invoke `superpowers:brainstorming` as a skill** — invoking it transfers control and the user gets asked questions directly. Instead, autopilot performs its own design review in Phase 2 step 5 (see below) and routes all questions to the consultant.
 2. **NEVER ask the user questions** — all ambiguities and clarifications go to the consultant (Phase 2b).
 3. **NEVER wait for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
 4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
@@ -101,15 +101,27 @@ If circuit breaker fires, print:
    ```
    📋 Planning <feature-id> (attempt <N>)…
    ```
-5. **Invoke `superpowers:brainstorming`** if the feature spec has ambiguities, contradictions, or design decisions to resolve:
-   - When brainstorming asks a clarifying question → **intercept it, do NOT forward to user**
-   - Send the question to the consultant via Phase 2b
-   - Print the `┌─ 🤝 Consulting` block as usual
-   - Inject the consultant's answer back into brainstorming as the user's response
-   - Repeat for every question brainstorming asks
-   - When brainstorming asks for design approval → **auto-approve** using the consultant's answers as justification
-   - When brainstorming finishes → its spec becomes the resolved feature context
-6. **Invoke `superpowers:writing-plans`** with the feature context injected
+5. **Design review (replaces brainstorming)** — scan the feature spec for anything that cannot be turned into concrete code:
+   - Contradictory requirements (e.g., "no redirects" AND "use hosted checkout page")
+   - Vague directives ("best", "appropriate", "optimal", "proper", "industry standard")
+   - Missing concrete values (no port, no timeout, no retry count)
+   - Multiple valid architectures with no guidance on which to pick
+   For **each** issue found:
+   a. Print:
+      ```
+      ❓ Design question for <feature-id>: <one-line summary of the ambiguity>
+      ```
+   b. Send the question to the consultant via Phase 2b (prints the `┌─ 🤝 Consulting` block)
+   c. Record the consultant's answer as a **design decision**
+   After all questions are resolved, build a **resolved spec** that replaces the ambiguous parts with the consultant's concrete answers. Print:
+   ```
+   ✔ Design review complete — <N> question(s) resolved via consultant
+   ```
+   If no ambiguities are found, print:
+   ```
+   ✔ Design review — spec is clear, no questions needed
+   ```
+6. **Invoke `superpowers:writing-plans`** with the resolved feature spec (not the original PRD text)
 7. Validate the generated plan:
    - At least one test per implementation task?
    - Referenced file paths exist or will be created?
