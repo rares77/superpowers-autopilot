@@ -25,11 +25,11 @@ That's **3 manual touchpoints per feature**. If your PRD has 10 features, you're
 
 ## The Solution
 
-Autopilot takes over Phase 2 entirely. Each feature is dispatched as a **subagent** — this uses Superpowers' native `<SUBAGENT-STOP>` mechanism, which automatically skips brainstorming (since the PRD is already its output).
+Autopilot takes over Phase 2 entirely. Each feature goes through an autonomous design review, planning, execution, and test cycle:
 
 ```
 PRD.md → autopilot reads features
-       → dispatches subagent per feature:
+       → [per feature]:
            → design review (resolves ambiguities via consultant)
            → writing-plans (auto)
            → subagent-driven-development (auto)
@@ -61,7 +61,7 @@ PRD.md → autopilot reads features
 cd your-project
 mkdir -p .claude/skills
 git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
-.claude/skills/superpowers-autopilot/scripts/setup.sh
+.claude/skills/superpowers-autopilot/scripts/autopilot-mode.sh
 ```
 
 ### Global (available in all your projects)
@@ -73,16 +73,25 @@ git clone https://github.com/rares77/superpowers-autopilot ~/.claude/skills/supe
 For each project where you want to use autopilot, run the setup script from the project root:
 
 ```bash
-~/.claude/skills/superpowers-autopilot/scripts/setup.sh
+~/.claude/skills/superpowers-autopilot/scripts/autopilot-mode.sh
 ```
 
-### What does setup.sh do?
+### What does autopilot-mode.sh do?
 
-It adds a single permission rule to `.claude/settings.json` that prevents `superpowers:brainstorming` from auto-triggering during the autopilot loop. **You can still invoke brainstorming manually** with `/brainstorming` — it only blocks the auto-trigger.
+It installs a **PreToolUse hook** that blocks four Superpowers interactive skills during autopilot runs:
 
-This is needed because brainstorming's aggressive `"MUST use before any creative work"` directive hijacks the autopilot flow. Claude Code has no skill priority system, so a permission deny is the only reliable way to prevent this.
+| Blocked skill | Why |
+|---|---|
+| `superpowers:brainstorming` | Has aggressive "MUST use before any creative work" directive that hijacks the loop |
+| `superpowers:finishing-a-development-branch` | Triggers manual PR review flow incompatible with automation |
+| `superpowers:executing-plans` | Opens interactive selection; autopilot owns execution mode |
+| `superpowers:using-git-worktrees` | Forks the working tree mid-feature, breaking the commit sequence |
 
-To undo: `./scripts/setup.sh --uninstall`
+**The guard is OFF by default.** It only activates when autopilot is running (Phase 0 creates `.claude/autopilot-active`; Phase 5 removes it). You can still invoke all these skills manually at any other time.
+
+**One-time restart required** after running `autopilot-mode.sh` — Claude Code reads hook registrations at startup. After that, the guard activates and deactivates automatically with no further restarts.
+
+To undo: `./scripts/autopilot-mode.sh --uninstall`
 
 ### Keeping it updated
 
@@ -115,13 +124,15 @@ Claude will:
 2. Ask which consultant to use when stuck (Claude Opus recommended)
 3. Create `autopilot-state.json` to track progress
 4. Create a git branch `autopilot/YYYYMMDD`
-5. For each feature, dispatch a subagent that:
-   - Reviews the spec for ambiguities (consults external model to resolve)
-   - Creates a plan via `writing-plans`
-   - Executes via `subagent-driven-development`
-   - Runs tests
-6. Main session commits each completed feature
-7. Print a summary report when done
+5. Activate the guard (`touch .claude/autopilot-active`)
+6. For each feature:
+   - Review the spec for ambiguities, resolve via consultant
+   - Create a plan via `writing-plans`
+   - Execute via `subagent-driven-development`
+   - Run tests
+   - Commit
+7. Deactivate the guard (`rm .claude/autopilot-active`)
+8. Print a summary report when done
 
 ---
 
@@ -161,17 +172,17 @@ features:
 
 Autopilot won't go rogue:
 
+- **Guard hook** — blocks 4 interactive Superpowers skills during the run; automatically OFF between runs
 - **Circuit breaker** — pauses after 3 consecutive feature failures, asks for your input
-- **Test regression protection** — snapshots your test suite before each feature; automatically reverts if existing tests break
+- **Test regression protection** — automatically reverts if existing tests break after a feature
 - **Per-feature commits** — each feature is its own git commit, easy to revert individually
 - **Dedicated branch** — never touches `main` directly
-- **Subagent isolation** — each feature runs in a fresh subagent, preventing context bleed between features
 
 ---
 
 ## How It Handles Being Stuck
 
-The subagent consults an external model in three situations:
+The autopilot consults an external model in three situations:
 1. **Ambiguous spec** — contradictory or vague requirements in the PRD
 2. **Plan validation fails** — generated plan has gaps or placeholders
 3. **Task fails twice** — same implementation task fails on retry
@@ -190,12 +201,13 @@ All consultations are logged in `autopilot-state.json` with timestamps and full 
 superpowers-autopilot/
 ├── SKILL.md                          # Main skill (read this to understand the loop)
 ├── scripts/
+│   ├── autopilot-mode.sh             # One-time setup: installs the guard hook
+│   ├── autopilot-guard.sh            # PreToolUse hook: blocks 4 skills during runs
 │   ├── parse-prd.sh                  # Extract features from PRD.md
 │   ├── state-manager.sh              # Read/write autopilot-state.json
 │   ├── consult.sh                    # Wrapper for consultant CLIs
 │   ├── detect-consultants.sh         # Detect available consultant CLIs
-│   ├── check-tests.sh                # Run tests, detect regressions
-│   └── setup.sh                      # Configure project settings (run once)
+│   └── check-tests.sh                # Run tests, detect regressions
 ├── references/
 │   ├── prd-formats.md                # Supported PRD formats
 │   ├── consultant-patterns.md        # When/how to consult external models

@@ -5,6 +5,17 @@ description: Use when the user wants to implement all features from a PRD.md aut
 
 # Superpowers Autopilot
 
+## Runtime Context
+
+**Autopilot state:**
+!`cat autopilot-state.json 2>/dev/null || echo "not initialized — fresh run"`
+
+**Current git branch:**
+!`git branch --show-current 2>/dev/null || echo "unknown"`
+
+**Guard status:**
+!`[ -f .claude/autopilot-active ] && echo "ACTIVE — interactive skills blocked" || echo "INACTIVE — will activate in Phase 0"`
+
 ## Overview
 
 Autonomous outer loop that implements every feature in a PRD.md with zero human intervention. You read the PRD, queue features, plan and execute each one using Superpowers skills, consult an external CLI when stuck, and exit with a summary report.
@@ -13,10 +24,11 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 ## Autopilot Rules
 
-1. **Each feature is dispatched as a subagent** — the main session manages the loop, state, and commits. A fresh subagent handles planning + execution for each feature. This automatically skips brainstorming (Superpowers' `<SUBAGENT-STOP>` mechanism).
-2. **Subagents NEVER ask the user questions** — all ambiguities go to the consultant (Phase 2b) via `scripts/consult.sh`.
-3. **The main session NEVER waits for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
-4. **Subagents ALWAYS choose subagent-driven execution** when `writing-plans` asks.
+1. **Interactive Superpowers skills are blocked by the guard hook** — `brainstorming`, `finishing-a-development-branch`, `executing-plans`, and `using-git-worktrees` are denied at the tool level while `.claude/autopilot-active` exists. You don't need to avoid them manually; the hook enforces it.
+2. **NEVER ask the user questions** — all ambiguities and clarifications go to the consultant (Phase 2b).
+3. **NEVER wait for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
+4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
+5. **Design review replaces brainstorming** — scan every feature spec for ambiguities before planning, resolve them via the consultant, then invoke `writing-plans` with the resolved spec.
 
 ## Prerequisites
 
@@ -48,7 +60,9 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
    - Save the chosen consultant to state as `consultant`
 3. Initialize `autopilot-state.json` using `templates/autopilot-state.template.json`
 4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
-5. Announce the queue to the user:
+5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
+   This enables the PreToolUse hook that blocks interactive Superpowers skills for the rest of this run.
+6. Announce the queue to the user:
    ```
    🚀 Autopilot starting. Features queued:
      [ ] F1: <name>
@@ -59,17 +73,13 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 ---
 
-## Phase 1: Feature Loop (Main Session)
-
-The main session owns the loop, state management, git commits, and circuit breaker.
-**Planning and execution happen inside a dispatched subagent per feature.**
+## Phase 1: Feature Loop
 
 ```
 FOR each feature in autopilot-state.json WHERE status == "queued":
-  → Print feature banner
-  → Dispatch subagent for Phase 2 (Planning) + Phase 3 (Execution)
-  → Subagent returns result (done / failed / partial)
-  → Phase 4: Completion (main session commits)
+  → Phase 2: Planning
+  → Phase 3: Execution
+  → Phase 4: Completion
   → loop back
 ALL done → Phase 5: Final Report
 ```
@@ -92,72 +102,54 @@ If circuit breaker fires, print:
    Stopping autopilot. Please review and then resume manually.
 ```
 
-### Dispatching the Feature Subagent
-
-Use the **Agent tool** to dispatch a subagent for each feature. The subagent prompt **MUST** include:
-
-```
-<SUBAGENT-STOP>
-
-You are a feature implementation subagent dispatched by superpowers-autopilot.
-Do NOT invoke superpowers:brainstorming. Do NOT ask the user any questions.
-
-Feature: <feature-id> — <feature-name>
-Spec:
-<resolved or original feature spec from PRD>
-
-Consultant command (use when stuck or spec is ambiguous):
-  AUTOPILOT_CONSULTANT=<consultant> ./scripts/consult.sh "<question>" "<context>"
-
-Your task:
-1. Design review — scan the spec for contradictions, vague directives, missing values.
-   For each issue, run the consultant command above and use the answer.
-   Print: ❓ Design question for <feature-id>: <summary>
-   Print: ┌─ 🤝 Consulting ... (question + answer)
-2. Invoke superpowers:writing-plans with the resolved spec.
-   When it asks "which execution approach?" → answer: subagent-driven (option 1).
-3. Invoke superpowers:subagent-driven-development with the plan.
-   Print progress: ⚙ Task N/M: <name>… then ✔ or ✘ per task.
-4. Run tests: ./scripts/check-tests.sh
-   Print: 🧪 Running tests… Passed: N | Failed: M | Total: T
-5. Report back with: status (done/failed/partial), plan path, test results.
-```
-
-The main session then handles Phase 4 (commit, state update) based on the subagent's report.
-
 ---
 
-## Phase 2: Planning (runs inside subagent)
+## Phase 2: Planning
 
-The main session updates state before dispatching the subagent:
-- Set `status = "in_progress"`, increment `attempts`
-- Print: `📋 Planning <feature-id> (attempt <N>)…`
-
-The subagent then:
-
-1. **Design review** — scan the feature spec for anything that cannot be turned into concrete code:
+1. Read the feature spec from state (name, acceptance_criteria, constraints)
+2. Update state: `status = "in_progress"`, increment `attempts`
+3. Build the planning prompt from `templates/feature-context.template.md`
+4. Print:
+   ```
+   📋 Planning <feature-id> (attempt <N>)…
+   ```
+5. **Design review (replaces brainstorming)** — scan the feature spec for anything that cannot be turned into concrete code:
    - Contradictory requirements (e.g., "no redirects" AND "use hosted checkout page")
    - Vague directives ("best", "appropriate", "optimal", "proper", "industry standard")
    - Missing concrete values (no port, no timeout, no retry count)
    - Multiple valid architectures with no guidance on which to pick
-   For **each** issue found, consult via `scripts/consult.sh` and print:
-   ```
-   ❓ Design question for <feature-id>: <one-line summary>
-   ┌─ 🤝 Consulting <consultant> — design_question [Feature: <feature-id>]
-   │  Q: <question>
-   │  A: <answer>
-   └─ ✔ Applying answer
-   ```
-   After all resolved, print:
+   For **each** issue found:
+   a. Print:
+      ```
+      ❓ Design question for <feature-id>: <one-line summary of the ambiguity>
+      ```
+   b. Send the question to the consultant via Phase 2b (prints the `┌─ 🤝 Consulting` block)
+   c. Record the consultant's answer as a **design decision**
+   After all questions are resolved, build a **resolved spec** that replaces the ambiguous parts with the consultant's concrete answers. Print:
    ```
    ✔ Design review complete — <N> question(s) resolved via consultant
    ```
-2. **Invoke `superpowers:writing-plans`** with the resolved spec
-   - When it asks "Which execution approach?" → answer: subagent-driven (option 1)
-3. **Validate** the generated plan:
+   If no ambiguities are found, print:
+   ```
+   ✔ Design review — spec is clear, no questions needed
+   ```
+6. **Invoke `superpowers:writing-plans`** with the resolved feature spec (not the original PRD text)
+7. Validate the generated plan:
    - At least one test per implementation task?
-   - No placeholder text ("TBD", "similar to task N")?
-   - If validation fails → consult via `scripts/consult.sh`, retry once
+   - Referenced file paths exist or will be created?
+   - No circular task dependencies?
+   - No placeholder text ("TBD", "similar to task N", "add validation")?
+8. If validation passes, print:
+   ```
+   ✔ Plan valid — <task-count> tasks, saved to <plan_path>
+   ```
+   When `writing-plans` asks "Which execution approach?" — **always answer: subagent-driven (option 1)**. Do not wait for user input. Autopilot owns this decision.
+9. If validation fails, print:
+   ```
+   ✘ Plan validation failed: <reason>
+     → Triggering consultant (Phase 2b)
+   ```
+   Then → **Phase 2b: Consultant Conversation**, then return to step 6 (planning) once
 
 ---
 
@@ -205,45 +197,55 @@ After consulting:
 
 ---
 
-## Phase 3: Execution (runs inside subagent)
-
-The subagent continues after planning:
+## Phase 3: Execution
 
 1. Print:
    ```
    🔨 Executing <feature-id> — invoking subagent-driven-development…
    ```
 2. **Invoke `superpowers:subagent-driven-development`** with the validated plan
-3. For each task, print progress:
+3. For each task subagent, print on start and completion:
    ```
      ⚙ Task <task-index>/<task-total>: <task-name>… [running]
+   ```
+   Then either:
+   ```
      ✔ Task <task-index>/<task-total>: <task-name> — done
    ```
-   Or on failure:
+   or:
    ```
      ✘ Task <task-index>/<task-total>: <task-name> — failed (attempt <N>)
      Error: <brief error summary>
+     → Triggering consultant (Phase 2b)
    ```
-   If a task fails twice → consult via `scripts/consult.sh`, retry once.
-   If still failing → skip task, mark feature as `"partial"`.
-4. After all tasks → run `scripts/check-tests.sh` and print:
+4. If a task still fails after consultant retry, print:
+   ```
+   ⚠ Task <task-name> skipped after 2 failures — feature marked partial
+   ```
+5. After all tasks complete → run `scripts/check-tests.sh` and print:
    ```
    🧪 Running tests…
      Passed: <N> | Failed: <M> | Total: <T>
    ```
-5. **Report back to main session** with:
-   - `status`: `done` | `failed` | `partial`
-   - `plan_path`: where the plan was saved
-   - `test_results`: pass/fail counts
-   - `error_summary`: if failed, what went wrong
+   Then:
+   - **All pass** → proceed to Phase 4
+   - **Regression detected**, print and act:
+     ```
+     ⚠ Regression detected — <failing-test-names>
+       Reverting last commit and consulting…
+     ```
+     → git revert last commit, trigger Phase 2b, retry once
+   - **Still failing** → print and update state:
+     ```
+     ❌ Feature <feature-id> failed — marking failed, moving to next
+        Consecutive failures: <N>/3
+     ```
+     increment `consecutive_failures`, skip to next feature
 
 ---
 
-## Phase 4: Feature Completion (Main Session)
+## Phase 4: Feature Completion
 
-After the subagent returns, the main session handles the result:
-
-**If subagent reports `done`:**
 1. Stage and commit:
    ```bash
    git add -A
@@ -251,29 +253,11 @@ After the subagent returns, the main session handles the result:
    ```
 2. Capture `commit_sha` in state
 3. Update state: `status = "done"`, `consecutive_failures = 0`
-4. Print:
+4. Print progress:
    ```
    ✅ Feature <N>/<total>: <name> — done
    ```
-
-**If subagent reports `failed`:**
-1. Revert uncommitted changes: `git checkout -- .`
-2. Update state: `status = "failed"`, increment `consecutive_failures`
-3. Print:
-   ```
-   ❌ Feature <feature-id> failed — <error_summary>
-      Consecutive failures: <N>/3
-   ```
-
-**If subagent reports `partial`:**
-1. Commit what was completed
-2. Update state: `status = "partial"`, reset `consecutive_failures`
-3. Print:
-   ```
-   ⚠ Feature <feature-id> partially complete — some tasks skipped
-   ```
-
-→ Back to Phase 1
+5. → Back to Phase 1
 
 ---
 
@@ -298,6 +282,9 @@ Next steps:
 ```
 
 If all features passed → offer to open a PR automatically.
+
+6. **Deactivate the autopilot guard** — `rm -f .claude/autopilot-active`
+   This re-enables all Superpowers interactive skills for normal use.
 
 ---
 
@@ -325,6 +312,8 @@ Use `scripts/state-manager.sh` to read/write safely:
 
 | File | Purpose |
 |------|---------|
+| `scripts/autopilot-mode.sh` | One-time setup: copies guard hook, registers it in `.claude/settings.json` |
+| `scripts/autopilot-guard.sh` | PreToolUse hook: blocks 4 interactive skills while `.claude/autopilot-active` exists |
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write autopilot-state.json |
 | `scripts/consult.sh` | Wrapper for consultant CLIs with timeout |
