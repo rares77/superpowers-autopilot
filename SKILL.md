@@ -66,6 +66,21 @@ ALL done → Phase 5: Final Report
 **Circuit breaker:** Check `circuit_breaker.consecutive_failures` before each feature.
 If `>= 3` → STOP, print blocker summary, wait for user input.
 
+At the start of each feature iteration, print:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▶ Feature <N>/<total>: <feature-id> — <name>
+  Failures so far: <consecutive_failures>/3
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+If circuit breaker fires, print:
+```
+🛑 Circuit breaker triggered — 3 consecutive failures.
+   Last failed: <feature-id>
+   Stopping autopilot. Please review and then resume manually.
+```
+
 ---
 
 ## Phase 2: Planning
@@ -73,16 +88,29 @@ If `>= 3` → STOP, print blocker summary, wait for user input.
 1. Read the feature spec from state (name, acceptance_criteria, constraints)
 2. Update state: `status = "in_progress"`, increment `attempts`
 3. Build the planning prompt from `templates/feature-context.template.md`
-4. **Invoke `superpowers:writing-plans`** with the feature context injected
-5. Validate the generated plan:
+4. Print:
+   ```
+   📋 Planning <feature-id> (attempt <N>)…
+   ```
+5. **Invoke `superpowers:writing-plans`** with the feature context injected
+6. Validate the generated plan:
    - At least one test per implementation task?
    - Referenced file paths exist or will be created?
    - No circular task dependencies?
-6. If validation fails → **Phase 2b: Codex Consultation**, then retry planning once
+7. If validation passes, print:
+   ```
+   ✔ Plan valid — <task-count> tasks, saved to <plan_path>
+   ```
+8. If validation fails, print:
+   ```
+   ✘ Plan validation failed: <reason>
+     → Triggering consultant (Phase 2b)
+   ```
+   Then → **Phase 2b: Consultant Conversation**, then retry planning once
 
 ---
 
-## Phase 2b: Codex Consultation
+## Phase 2b: Consultant Conversation
 
 Trigger when:
 - Plan validation fails
@@ -90,32 +118,86 @@ Trigger when:
 - Test suite regresses after implementation
 - Requirement in PRD is ambiguous
 
+**Before calling the consultant**, print the conversation header:
+```
+┌─ 🤝 Consulting <consultant> — <trigger reason> [Feature: <feature-id>]
+│  Q: <the exact question being sent>
+│  Context: <one-line summary of context snippet>
+```
+
 How to consult:
 ```bash
 AUTOPILOT_CONSULTANT=$(./scripts/state-manager.sh get consultant) \
-  ./scripts/codex-consult.sh "<formatted question>" "<context snippet>"
+  ./scripts/consult.sh "<formatted question>" "<context snippet>"
 ```
 
-See `references/codex-patterns.md` for question templates per situation.
+See `references/consultant-patterns.md` for question templates per situation.
+
+**After receiving the answer**, print the response and outcome:
+```
+│  A: <consultant answer, full text>
+└─ ✔ Applying answer — retrying <plan/task/revert>
+```
+
+If the consultant is unavailable, print:
+```
+┌─ 🤝 Consulting <consultant> — unavailable, self-reasoning [Feature: <feature-id>]
+│  Q: <question>
+│  A: <Claude's own reasoning>
+└─ ✔ Applying self-reasoning — retrying <plan/task/revert>
+```
 
 After consulting:
 - Log result to `codex_consultations[]` in state with timestamp
 - Apply the answer and retry the failed step
-- If Codex is unavailable (not installed), reason through it independently
+- If consultant is unavailable, reason through it independently and log as `"self-consultation"`
 
 ---
 
 ## Phase 3: Execution
 
-1. **Invoke `superpowers:subagent-driven-development`** with the validated plan
-2. For each task subagent:
-   - Track pass/fail
-   - If a task fails twice → trigger Phase 2b (Codex), then retry once more
-   - If still failing → skip task, mark feature as `"partial"`, continue
-3. After all tasks complete → run `scripts/check-tests.sh`
+1. Print:
+   ```
+   🔨 Executing <feature-id> — invoking subagent-driven-development…
+   ```
+2. **Invoke `superpowers:subagent-driven-development`** with the validated plan
+3. For each task subagent, print on start and completion:
+   ```
+     ⚙ Task <task-index>/<task-total>: <task-name>… [running]
+   ```
+   Then either:
+   ```
+     ✔ Task <task-index>/<task-total>: <task-name> — done
+   ```
+   or:
+   ```
+     ✘ Task <task-index>/<task-total>: <task-name> — failed (attempt <N>)
+     Error: <brief error summary>
+     → Triggering consultant (Phase 2b)
+   ```
+4. If a task still fails after consultant retry, print:
+   ```
+   ⚠ Task <task-name> skipped after 2 failures — feature marked partial
+   ```
+5. After all tasks complete → run `scripts/check-tests.sh` and print:
+   ```
+   🧪 Running tests…
+     Passed: <N> | Failed: <M> | Total: <T>
+   ```
+   Then:
    - **All pass** → proceed to Phase 4
-   - **Regression detected** → git revert last commit, trigger Phase 2b, retry once
-   - **Still failing** → mark feature `"failed"`, increment `consecutive_failures`, skip to next feature
+   - **Regression detected**, print and act:
+     ```
+     ⚠ Regression detected — <failing-test-names>
+       Reverting last commit and consulting…
+     ```
+     → git revert last commit, trigger Phase 2b, retry once
+   - **Still failing** → print and update state:
+     ```
+     ❌ Feature <feature-id> failed — marking failed, moving to next
+        Consecutive failures: <N>/3
+     ```
+     increment `consecutive_failures`, skip to next feature
 
 ---
 
