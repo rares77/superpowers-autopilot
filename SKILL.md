@@ -268,10 +268,10 @@ Use `scripts/state-manager.sh` to read/write safely:
 |------|---------|
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write autopilot-state.json |
-| `scripts/codex-consult.sh` | Wrapper for `codex -p` with timeout |
+| `scripts/consult.sh` | Wrapper for consultant CLIs with timeout |
 | `scripts/check-tests.sh` | Run test suite, return pass/fail + diff |
 | `references/prd-formats.md` | Supported PRD formats and parsing rules |
-| `references/codex-patterns.md` | When/how to consult Codex per situation |
+| `references/consultant-patterns.md` | When/how to consult per situation |
 | `references/safety-rails.md` | Circuit breaker, rollback, cost guard logic |
 | `templates/autopilot-state.template.json` | Initial state file structure |
 | `templates/feature-context.template.md` | Per-feature context injection prompt |
