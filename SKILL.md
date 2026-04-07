@@ -82,7 +82,7 @@ If `>= 3` → STOP, print blocker summary, wait for user input.
 
 ---
 
-## Phase 2b: Codex Consultation
+## Phase 2b: Consultant Conversation
 
 Trigger when:
 - Plan validation fails
@@ -90,18 +90,39 @@ Trigger when:
 - Test suite regresses after implementation
 - Requirement in PRD is ambiguous
 
+**Before calling the consultant**, print the conversation header:
+```
+┌─ 🤝 Consulting <consultant> — <trigger reason> [Feature: <feature-id>]
+│  Q: <the exact question being sent>
+│  Context: <one-line summary of context snippet>
+```
+
 How to consult:
 ```bash
 AUTOPILOT_CONSULTANT=$(./scripts/state-manager.sh get consultant) \
-  ./scripts/codex-consult.sh "<formatted question>" "<context snippet>"
+  ./scripts/consult.sh "<formatted question>" "<context snippet>"
 ```
 
-See `references/codex-patterns.md` for question templates per situation.
+See `references/consultant-patterns.md` for question templates per situation.
+
+**After receiving the answer**, print the response and outcome:
+```
+│  A: <consultant answer, full text>
+└─ ✔ Applying answer — retrying <plan/task/revert>
+```
+
+If the consultant is unavailable, print:
+```
+┌─ 🤝 Consulting <consultant> — unavailable, self-reasoning [Feature: <feature-id>]
+│  Q: <question>
+│  A: <Claude's own reasoning>
+└─ ✔ Applying self-reasoning — retrying <plan/task/revert>
+```
 
 After consulting:
 - Log result to `codex_consultations[]` in state with timestamp
 - Apply the answer and retry the failed step
-- If Codex is unavailable (not installed), reason through it independently
+- If consultant is unavailable, reason through it independently and log as `"self-consultation"`
 
 ---
 
