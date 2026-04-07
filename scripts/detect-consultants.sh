@@ -12,10 +12,10 @@
 
 set -euo pipefail
 
-available=()
+available=("\"claude\"")  # always available — we're running inside Claude Code
 unavailable=()
 
-for cli in codex gemini claude; do
+for cli in codex gemini; do
   if command -v "$cli" &>/dev/null; then
     available+=("\"$cli\"")
   else
@@ -23,10 +23,11 @@ for cli in codex gemini claude; do
   fi
 done
 
-# Recommended priority: codex > gemini > claude > none
-# (codex/gemini = genuinely different model = better second opinion)
-recommended="none"
-for preferred in codex gemini claude; do
+# Recommended priority: codex > gemini > claude
+# (codex/gemini = different model = genuinely fresh perspective)
+# claude = same model but isolated context, valid fallback
+recommended="claude"
+for preferred in codex gemini; do
   if command -v "$preferred" &>/dev/null; then
     recommended="$preferred"
     break
