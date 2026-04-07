@@ -107,6 +107,7 @@ If circuit breaker fires, print:
    ```
    ✔ Plan valid — <task-count> tasks, saved to <plan_path>
    ```
+   When `writing-plans` asks "Which execution approach?" — **always answer: subagent-driven (option 1)**. Do not wait for user input. Autopilot owns this decision.
 9. If validation fails, print:
    ```
    ✘ Plan validation failed: <reason>
