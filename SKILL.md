@@ -92,21 +92,27 @@ If circuit breaker fires, print:
    ```
    📋 Planning <feature-id> (attempt <N>)…
    ```
-5. **Invoke `superpowers:writing-plans`** with the feature context injected
-6. Validate the generated plan:
+5. **Before invoking `superpowers:writing-plans`**, scan the feature spec for ambiguous requirements:
+   - Vague directives like "best", "appropriate", "optimal", "proper", "industry standard"
+   - Missing concrete values (no port, no timeout, no retry count specified)
+   - Two valid implementation approaches with no guidance on which to pick
+   If any ambiguity is found, **do NOT invoke writing-plans yet** — go directly to Phase 2b (Consultant) with the question, then return here with the resolved spec.
+6. **Invoke `superpowers:writing-plans`** with the feature context injected
+7. Validate the generated plan:
    - At least one test per implementation task?
    - Referenced file paths exist or will be created?
    - No circular task dependencies?
-7. If validation passes, print:
+   - No placeholder text ("TBD", "similar to task N", "add validation")?
+8. If validation passes, print:
    ```
    ✔ Plan valid — <task-count> tasks, saved to <plan_path>
    ```
-8. If validation fails, print:
+9. If validation fails, print:
    ```
    ✘ Plan validation failed: <reason>
      → Triggering consultant (Phase 2b)
    ```
-   Then → **Phase 2b: Consultant Conversation**, then retry planning once
+   Then → **Phase 2b: Consultant Conversation**, then return to step 6 (planning) once
 
 ---
 
