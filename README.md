@@ -48,13 +48,13 @@ PRD.md → autopilot reads features
 ```bash
 cd your-project
 mkdir -p .claude/skills
-git clone https://github.com/YOUR_USERNAME/superpowers-autopilot .claude/skills/superpowers-autopilot
+git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
 ```
 
 ### Global (available in all your projects)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/superpowers-autopilot ~/.claude/skills/superpowers-autopilot
+git clone https://github.com/rares77/superpowers-autopilot ~/.claude/skills/superpowers-autopilot
 ```
 
 ### Keeping it updated
