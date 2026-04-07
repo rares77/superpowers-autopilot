@@ -139,6 +139,21 @@ PYEOF
     fi
     ;;
 
+  set-consultant)
+    require_state
+    CONSULTANT="$1"
+    python3 - "$STATE_FILE" "$CONSULTANT" <<'PYEOF'
+import sys, json
+state_file, consultant = sys.argv[1:]
+with open(state_file) as f:
+    state = json.load(f)
+state["consultant"] = consultant
+with open(state_file, 'w') as f:
+    json.dump(state, f, indent=2)
+print(f"Consultant set to: {consultant}")
+PYEOF
+    ;;
+
   reset-failures)
     require_state
     python3 - "$STATE_FILE" <<'PYEOF'

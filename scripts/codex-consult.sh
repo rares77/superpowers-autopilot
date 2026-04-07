@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
-# codex-consult.sh — Consult Codex CLI (or fallback) for a second opinion
+# codex-consult.sh — Get a "second opinion" from an external CLI model
 # Usage: ./scripts/codex-consult.sh "<question>" "<context>"
-# Output: Codex's answer to stdout, exit code 0 on success
+# Output: Model's answer to stdout
+# Exit codes: 0 = success, 2 = consultant unavailable/failed
 #
-# Consultant priority (configurable via AUTOPILOT_CONSULTANT env var):
-#   1. codex -p    (OpenAI Codex CLI)
-#   2. gemini -p   (Google Gemini CLI)
-#   Falls back gracefully if neither is installed.
+# Consultant is read from AUTOPILOT_CONSULTANT env var (set in autopilot-state.json).
+# Supported values: codex | gemini | claude | none
 
 set -euo pipefail
 
 QUESTION="${1:-}"
 CONTEXT="${2:-}"
 TIMEOUT="${AUTOPILOT_CONSULTANT_TIMEOUT:-120}"
-CONSULTANT="${AUTOPILOT_CONSULTANT:-auto}"
+CONSULTANT="${AUTOPILOT_CONSULTANT:-none}"
 
 if [[ -z "$QUESTION" ]]; then
   echo "Error: question required" >&2
@@ -27,61 +26,37 @@ $CONTEXT
 
 Please give a concise, actionable answer. Focus on the specific decision or fix needed."
 
-consult_codex() {
-  echo "$FULL_PROMPT" | timeout "$TIMEOUT" codex -p --approval-mode full-auto 2>/dev/null
-}
-
-consult_gemini() {
-  echo "$FULL_PROMPT" | timeout "$TIMEOUT" gemini -p 2>/dev/null
-}
-
-run_consultant() {
-  local consultant="$1"
-  case "$consultant" in
-    codex)
-      if command -v codex &>/dev/null; then
-        consult_codex
-        return 0
-      fi
-      return 1
-      ;;
-    gemini)
-      if command -v gemini &>/dev/null; then
-        consult_gemini
-        return 0
-      fi
-      return 1
-      ;;
-  esac
-}
-
-# Auto-detect best available consultant
-if [[ "$CONSULTANT" == "auto" ]]; then
-  if command -v codex &>/dev/null; then
-    CONSULTANT="codex"
-  elif command -v gemini &>/dev/null; then
-    CONSULTANT="gemini"
-  else
-    CONSULTANT="none"
-  fi
-fi
-
 case "$CONSULTANT" in
-  codex|gemini)
-    if run_consultant "$CONSULTANT"; then
-      exit 0
-    else
-      echo "Warning: $CONSULTANT not available or timed out." >&2
-      exit 2
+  codex)
+    if ! command -v codex &>/dev/null; then
+      echo "Error: codex CLI not found." >&2; exit 2
     fi
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" codex -p --approval-mode full-auto
     ;;
+
+  gemini)
+    if ! command -v gemini &>/dev/null; then
+      echo "Error: gemini CLI not found." >&2; exit 2
+    fi
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" gemini -p
+    ;;
+
+  claude)
+    if ! command -v claude &>/dev/null; then
+      echo "Error: claude CLI not found." >&2; exit 2
+    fi
+    # Use Opus for second opinions — more capable than the orchestrating model,
+    # giving a genuine upgrade in reasoning, not just an isolated context.
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-opus-4-6
+    ;;
+
   none)
-    echo "No external consultant available (codex/gemini not installed)." >&2
-    echo "Proceeding with Claude's own reasoning for: $QUESTION"
+    echo "No external consultant configured. Claude will reason independently." >&2
     exit 2
     ;;
+
   *)
-    echo "Error: Unknown consultant '$CONSULTANT'. Set AUTOPILOT_CONSULTANT=codex|gemini|auto" >&2
+    echo "Error: Unknown consultant '$CONSULTANT'. Valid: codex | gemini | claude | none" >&2
     exit 1
     ;;
 esac

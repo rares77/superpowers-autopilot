@@ -23,15 +23,31 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 ## Phase 0: Initialize
 
 1. Parse the PRD → run `scripts/parse-prd.sh <PRD_PATH>` to extract feature list as JSON
-2. Initialize `autopilot-state.json` in the project root using `templates/autopilot-state.template.json`
-3. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
-4. Announce the queue to the user:
+2. **Detect available second-opinion CLIs** → run `scripts/detect-consultants.sh`
+   - Shows which of `codex`, `gemini`, `claude` are installed
+   - **Ask the user to choose** (or confirm the recommended default):
+     ```
+     🔍 Second-opinion consultant detection:
+       ✅ claude (Opus) — always available ⭐ recommended
+                          more capable model = genuine reasoning upgrade
+       ✅ codex          — available (different model family)
+       ❌ gemini         — not found
+
+     Which should I consult when stuck? [claude / codex]
+     Default: claude/Opus (press Enter to confirm)
+     ```
+   - `claude` (Opus) este întotdeauna recomandat — orchestratorul rulează pe Sonnet,
+     Opus oferă un upgrade real de raționament, nu doar context izolat
+   - Save the chosen consultant to state as `consultant`
+3. Initialize `autopilot-state.json` using `templates/autopilot-state.template.json`
+4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
+5. Announce the queue to the user:
    ```
    🚀 Autopilot starting. Features queued:
      [ ] F1: <name>
      [ ] F2: <name>
      ...
-   Working autonomously. I'll report when done.
+   Consultant: codex | Working autonomously. I'll report when done.
    ```
 
 ---
@@ -76,7 +92,8 @@ Trigger when:
 
 How to consult:
 ```bash
-./scripts/codex-consult.sh "<formatted question>" "<context snippet>"
+AUTOPILOT_CONSULTANT=$(./scripts/state-manager.sh get consultant) \
+  ./scripts/codex-consult.sh "<formatted question>" "<context snippet>"
 ```
 
 See `references/codex-patterns.md` for question templates per situation.
