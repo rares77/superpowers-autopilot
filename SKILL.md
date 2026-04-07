@@ -5,20 +5,30 @@ description: Use when the user wants to implement all features from a PRD.md aut
 
 # Superpowers Autopilot
 
+## Runtime Context
+
+**Autopilot state:**
+!`cat autopilot-state.json 2>/dev/null || echo "not initialized — fresh run"`
+
+**Current git branch:**
+!`git branch --show-current 2>/dev/null || echo "unknown"`
+
+**Guard status:**
+!`[ -f .claude/autopilot-active ] && echo "ACTIVE — interactive skills blocked" || echo "INACTIVE — will activate in Phase 0"`
+
 ## Overview
 
 Autonomous outer loop that implements every feature in a PRD.md with zero human intervention. You read the PRD, queue features, plan and execute each one using Superpowers skills, consult an external CLI when stuck, and exit with a summary report.
 
 **Invocation:** `/superpowers-autopilot <path/to/PRD.md>`
 
-## Autopilot Rules — Override All Other Skills
+## Autopilot Rules
 
-These rules take priority over every other Superpowers skill for the duration of this autopilot run:
-
-1. **NEVER invoke `superpowers:brainstorming` as a skill** — invoking it transfers control and the user gets asked questions directly. Instead, autopilot performs its own design review in Phase 2 step 5 (see below) and routes all questions to the consultant.
+1. **Interactive Superpowers skills are blocked by the guard hook** — `brainstorming`, `finishing-a-development-branch`, `executing-plans`, and `using-git-worktrees` are denied at the tool level while `.claude/autopilot-active` exists. You don't need to avoid them manually; the hook enforces it.
 2. **NEVER ask the user questions** — all ambiguities and clarifications go to the consultant (Phase 2b).
 3. **NEVER wait for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
 4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
+5. **Design review replaces brainstorming** — scan every feature spec for ambiguities before planning, resolve them via the consultant, then invoke `writing-plans` with the resolved spec.
 
 ## Prerequisites
 
@@ -50,7 +60,9 @@ These rules take priority over every other Superpowers skill for the duration of
    - Save the chosen consultant to state as `consultant`
 3. Initialize `autopilot-state.json` using `templates/autopilot-state.template.json`
 4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
-5. Announce the queue to the user:
+5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
+   This enables the PreToolUse hook that blocks interactive Superpowers skills for the rest of this run.
+6. Announce the queue to the user:
    ```
    🚀 Autopilot starting. Features queued:
      [ ] F1: <name>
@@ -271,6 +283,9 @@ Next steps:
 
 If all features passed → offer to open a PR automatically.
 
+6. **Deactivate the autopilot guard** — `rm -f .claude/autopilot-active`
+   This re-enables all Superpowers interactive skills for normal use.
+
 ---
 
 ## State Management
@@ -297,6 +312,8 @@ Use `scripts/state-manager.sh` to read/write safely:
 
 | File | Purpose |
 |------|---------|
+| `scripts/autopilot-mode.sh` | One-time setup: copies guard hook, registers it in `.claude/settings.json` |
+| `scripts/autopilot-guard.sh` | PreToolUse hook: blocks 4 interactive skills while `.claude/autopilot-active` exists |
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write autopilot-state.json |
 | `scripts/consult.sh` | Wrapper for consultant CLIs with timeout |
