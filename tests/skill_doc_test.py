@@ -15,6 +15,13 @@ class SkillDocTest(unittest.TestCase):
         runtime_section = match.group(1)
         self.assertNotIn("!`", runtime_section)
 
+    def test_consultant_selection_requires_waiting_for_user_choice(self):
+        content = SKILL_DOC.read_text()
+        self.assertIn(
+            "Stop after printing the consultant picker and wait for the user's choice.",
+            content,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
