@@ -7,14 +7,8 @@ description: Use when the user wants to implement all features from a PRD.md wit
 
 ## Runtime Context
 
-**Autopilot state:**
-!`./.claude/autopilot.sh runtime-state`
-
-**Current git branch:**
-!`./.claude/autopilot.sh current-branch`
-
-**Guard status:**
-!`./.claude/autopilot.sh guard-status`
+Runtime state is checked explicitly in `Resume Check` and `Phase 0`.
+Do not execute bash from this section during skill initialization.
 
 ## Overview
 
