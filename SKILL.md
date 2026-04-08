@@ -108,6 +108,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
      ✅ codex         — available (different model family)
      ❌ gemini        — not found
      ❌ copilot       — not found
+     ❌ cursor        — not found
 
    Which consultant when stuck? [claude:opus / claude:sonnet / codex]
    Default: claude:opus (press Enter to confirm)
@@ -120,6 +121,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
      ❌ codex    — not found
      ❌ gemini   — not found
      ❌ copilot  — not found
+     ❌ cursor   — not found
 
    ⚠ No external consultant available.
      Will reason through blockers independently (same model, same session).
