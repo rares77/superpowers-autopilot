@@ -54,22 +54,42 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
   Then stop. On the next invocation (after restart) the hook will be active and autopilot proceeds normally.
 
 1. Parse the PRD → run `scripts/parse-prd.sh <PRD_PATH>` to extract feature list as JSON
-2. **Detect available second-opinion CLIs** → run `scripts/detect-consultants.sh`
-   - Shows which of `codex`, `gemini`, `claude` are installed
+2. **Detect available consultants** → run `scripts/detect-consultants.sh`
+   - Tests each CLI with `--version` (fast, no API call)
+   - Two levels: **external CLI** (real second opinion) vs **self-reasoning** (fallback)
    - **Ask the user to choose** (or confirm the recommended default):
-     ```
-     🔍 Second-opinion consultant detection:
-       ✅ claude (Opus) — always available ⭐ recommended
-                          more capable model = genuine reasoning upgrade
-       ✅ codex          — available (different model family)
-       ❌ gemini         — not found
 
-     Which should I consult when stuck? [claude / codex]
-     Default: claude/Opus (press Enter to confirm)
-     ```
-   - `claude` (Opus) is always recommended — the orchestrator runs on Sonnet,
-     Opus provides a genuine reasoning upgrade, not just isolated context
+   *Example — external CLIs found:*
+   ```
+   🔍 Consultant detection:
+     ✅ claude:opus   — available ⭐ recommended
+                        Opus = reasoning upgrade over orchestrating Sonnet
+     ✅ claude:sonnet — available (same model family as orchestrator)
+     ✅ codex         — available (different model family)
+     ❌ gemini        — not found
+     ❌ copilot       — not found
+
+   Which consultant when stuck? [claude:opus / claude:sonnet / codex]
+   Default: claude:opus (press Enter to confirm)
+   ```
+
+   *Example — no external CLIs found:*
+   ```
+   🔍 Consultant detection:
+     ❌ claude   — not found
+     ❌ codex    — not found
+     ❌ gemini   — not found
+     ❌ copilot  — not found
+
+   ⚠ No external consultant available.
+     Will reason through blockers independently (same model, same session).
+     For a genuine second opinion, install the claude CLI and re-run.
+
+   Continuing with self-reasoning fallback.
+   ```
+
    - Save the chosen consultant to state as `consultant`
+   - Valid values: `claude:opus`, `claude:sonnet`, `codex`, `gemini`, `copilot`, `cursor`, `self`
 3. Initialize `autopilot-state.json` using `templates/autopilot-state.template.json`
 4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
 5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
@@ -173,39 +193,43 @@ Trigger when:
 - Test suite regresses after implementation
 - Requirement in PRD is ambiguous
 
-**Before calling the consultant**, print the conversation header:
+**Before consulting**, print the header:
 ```
 ┌─ 🤝 Consulting <consultant> — <trigger reason> [Feature: <feature-id>]
 │  Q: <the exact question being sent>
 │  Context: <one-line summary of context snippet>
 ```
 
-How to consult:
+**Level 1 — External CLI** (consultant is anything other than `self`):
 ```bash
 AUTOPILOT_CONSULTANT=$(./scripts/state-manager.sh get consultant) \
   ./scripts/consult.sh "<formatted question>" "<context snippet>"
 ```
-
-See `references/consultant-patterns.md` for question templates per situation.
-
-**After receiving the answer**, print the response and outcome:
+After receiving the answer:
 ```
 │  A: <consultant answer, full text>
 └─ ✔ Applying answer — retrying <plan/task/revert>
 ```
 
-If the consultant is unavailable, print:
+**Level 2 — Self-reasoning** (consultant is `self`, or external CLI fails at runtime):
+Do not call `consult.sh`. Instead, reason through the problem directly using this structure:
+- Restate the blocker in one sentence
+- List 2–3 concrete options with trade-offs
+- Pick the best option and justify it in one sentence
+Then print:
 ```
-┌─ 🤝 Consulting <consultant> — unavailable, self-reasoning [Feature: <feature-id>]
+┌─ 🤔 Self-reasoning — <trigger reason> [Feature: <feature-id>]
 │  Q: <question>
-│  A: <Claude's own reasoning>
+│  A: <your reasoning — options considered + chosen approach>
 └─ ✔ Applying self-reasoning — retrying <plan/task/revert>
 ```
+Note: same model, same session — less independent than an external consultant.
 
-After consulting:
-- Log result to `codex_consultations[]` in state with timestamp
+See `references/consultant-patterns.md` for question templates per situation.
+
+After consulting (either level):
+- Log result to `consultations[]` in state with `type` (`external` or `self`), timestamp, Q&A
 - Apply the answer and retry the failed step
-- If consultant is unavailable, reason through it independently and log as `"self-consultation"`
 
 ---
 

@@ -1,41 +1,96 @@
 #!/usr/bin/env bash
-# detect-consultants.sh — Detect which second-opinion CLIs are available
+# detect-consultants.sh — Detect which second-opinion consultants are available
 # Usage: ./scripts/detect-consultants.sh
-# Output: JSON object with available consultants and recommended default
 #
-# Example output:
+# Output: JSON with available consultants and recommended default.
+# Each entry in "available" is a consultant ID usable by consult.sh.
+#
+# Two levels:
+#   Level 1 — External CLI (isolated subprocess, real second opinion)
+#             claude:opus, claude:sonnet, codex, gemini, copilot, cursor
+#   Level 2 — Self-reasoning (same model, same session, no CLI needed)
+#             Used automatically when no external CLI is found.
+#
+# Example output (external CLI found):
 # {
-#   "available": ["claude", "codex", "copilot"],
-#   "unavailable": ["gemini", "cursor"],
-#   "recommended": "claude"
+#   "available": ["claude:opus", "claude:sonnet", "codex"],
+#   "unavailable": ["gemini", "copilot", "cursor"],
+#   "recommended": "claude:opus",
+#   "self_reasoning_only": false
+# }
+#
+# Example output (nothing found):
+# {
+#   "available": [],
+#   "unavailable": ["claude", "codex", "gemini", "copilot", "cursor"],
+#   "recommended": "self",
+#   "self_reasoning_only": true
 # }
 
 set -euo pipefail
 
-available=("\"claude\"")  # always available — we're running inside Claude Code
+available=()
 unavailable=()
+recommended=""
 
-for cli in codex gemini cursor; do
-  if command -v "$cli" &>/dev/null; then
-    available+=("\"$cli\"")
-  else
-    unavailable+=("\"$cli\"")
-  fi
-done
+# Test a CLI by checking it is installed and responds to --version.
+# We don't attempt an auth call — that would be slow and potentially costly.
+cli_ok() {
+  command -v "$1" &>/dev/null && "$1" --version &>/dev/null
+}
 
-# Check gh copilot (gh extension, not a standalone binary)
-if command -v gh &>/dev/null && gh extension list 2>/dev/null | grep -q copilot; then
+# claude CLI — if available, offer both Opus (upgrade) and Sonnet (same family)
+if cli_ok claude; then
+  available+=("\"claude:opus\"")   # Opus = genuine reasoning upgrade
+  available+=("\"claude:sonnet\"") # Sonnet = same model family as orchestrator
+else
+  unavailable+=("\"claude\"")
+fi
+
+# codex (OpenAI)
+if cli_ok codex; then
+  available+=("\"codex\"")
+else
+  unavailable+=("\"codex\"")
+fi
+
+# gemini (Google)
+if cli_ok gemini; then
+  available+=("\"gemini\"")
+else
+  unavailable+=("\"gemini\"")
+fi
+
+# copilot — standalone CLI (not gh copilot)
+if cli_ok copilot; then
   available+=("\"copilot\"")
 else
   unavailable+=("\"copilot\"")
 fi
 
-# Always recommend claude (Opus) as default — it's a more capable model
-# than the orchestrating instance, giving a real reasoning upgrade.
-# codex/gemini/copilot/cursor are alternatives if the user prefers a different model family.
-recommended="claude"
+# cursor
+if cli_ok cursor; then
+  available+=("\"cursor\"")
+else
+  unavailable+=("\"cursor\"")
+fi
+
+# Pick recommended: prefer claude:opus, else first available, else self
+if [[ " ${available[*]:-} " == *'"claude:opus"'* ]]; then
+  recommended="claude:opus"
+elif [[ ${#available[@]} -gt 0 ]]; then
+  # strip quotes from first entry
+  recommended=$(echo "${available[0]}" | tr -d '"')
+else
+  recommended="self"
+fi
+
+self_reasoning_only="false"
+if [[ ${#available[@]} -eq 0 ]]; then
+  self_reasoning_only="true"
+fi
 
 available_json=$(IFS=,; echo "[${available[*]:-}]")
 unavailable_json=$(IFS=,; echo "[${unavailable[*]:-}]")
 
-echo "{\"available\": $available_json, \"unavailable\": $unavailable_json, \"recommended\": \"$recommended\"}"
+echo "{\"available\": $available_json, \"unavailable\": $unavailable_json, \"recommended\": \"$recommended\", \"self_reasoning_only\": $self_reasoning_only}"

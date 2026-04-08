@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
-# consult.sh — Get a "second opinion" from an external CLI model
+# consult.sh — Get a second opinion from an external CLI model
 # Usage: ./scripts/consult.sh "<question>" "<context>"
 # Output: Model's answer to stdout
 # Exit codes: 0 = success, 2 = consultant unavailable/failed
 #
-# Consultant is read from AUTOPILOT_CONSULTANT env var (set in autopilot-state.json).
-# Supported values: codex | gemini | claude | copilot | cursor | none
+# AUTOPILOT_CONSULTANT controls which consultant to use.
+# Supported values:
+#   claude:opus    — claude CLI with Opus model (recommended, reasoning upgrade)
+#   claude:sonnet  — claude CLI with Sonnet model (same family as orchestrator)
+#   codex          — OpenAI codex CLI
+#   gemini         — Google gemini CLI
+#   copilot        — copilot CLI (standalone, not gh copilot)
+#   cursor         — cursor CLI
+#   self           — no external CLI; caller handles self-reasoning
 
 set -euo pipefail
 
 QUESTION="${1:-}"
 CONTEXT="${2:-}"
 TIMEOUT="${AUTOPILOT_CONSULTANT_TIMEOUT:-120}"
-CONSULTANT="${AUTOPILOT_CONSULTANT:-none}"
+CONSULTANT="${AUTOPILOT_CONSULTANT:-self}"
 
 if [[ -z "$QUESTION" ]]; then
   echo "Error: question required" >&2
@@ -27,6 +34,20 @@ $CONTEXT
 Please give a concise, actionable answer. Focus on the specific decision or fix needed."
 
 case "$CONSULTANT" in
+  claude:opus)
+    if ! command -v claude &>/dev/null; then
+      echo "Error: claude CLI not found." >&2; exit 2
+    fi
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-opus-4-6
+    ;;
+
+  claude:sonnet)
+    if ! command -v claude &>/dev/null; then
+      echo "Error: claude CLI not found." >&2; exit 2
+    fi
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-sonnet-4-6
+    ;;
+
   codex)
     if ! command -v codex &>/dev/null; then
       echo "Error: codex CLI not found." >&2; exit 2
@@ -41,20 +62,11 @@ case "$CONSULTANT" in
     echo "$FULL_PROMPT" | timeout "$TIMEOUT" gemini -p
     ;;
 
-  claude)
-    if ! command -v claude &>/dev/null; then
-      echo "Error: claude CLI not found." >&2; exit 2
-    fi
-    # Use Opus for second opinions — more capable than the orchestrating model,
-    # giving a genuine upgrade in reasoning, not just an isolated context.
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-opus-4-6
-    ;;
-
   copilot)
-    if ! command -v gh &>/dev/null || ! gh extension list 2>/dev/null | grep -q copilot; then
-      echo "Error: gh copilot extension not found. Install with: gh extension install github/gh-copilot" >&2; exit 2
+    if ! command -v copilot &>/dev/null; then
+      echo "Error: copilot CLI not found." >&2; exit 2
     fi
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" gh copilot explain -
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" copilot -p
     ;;
 
   cursor)
@@ -64,13 +76,14 @@ case "$CONSULTANT" in
     echo "$FULL_PROMPT" | timeout "$TIMEOUT" cursor -p
     ;;
 
-  none)
-    echo "No external consultant configured. Claude will reason independently." >&2
+  self)
+    # No external consultant — caller (SKILL.md) handles self-reasoning inline.
     exit 2
     ;;
 
   *)
-    echo "Error: Unknown consultant '$CONSULTANT'. Valid: codex | gemini | claude | copilot | cursor | none" >&2
+    echo "Error: Unknown consultant '$CONSULTANT'." >&2
+    echo "Valid: claude:opus | claude:sonnet | codex | gemini | copilot | cursor | self" >&2
     exit 1
     ;;
 esac

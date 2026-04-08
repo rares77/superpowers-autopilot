@@ -175,16 +175,28 @@ To uninstall: `./scripts/install.sh --uninstall`
 
 ## How It Handles Being Stuck
 
-The autopilot consults an external model in three situations:
+The autopilot consults a second opinion in three situations:
 1. **Ambiguous spec** — contradictory or vague requirements in the PRD
 2. **Plan validation fails** — generated plan has gaps or placeholders
 3. **Task fails twice** — same implementation task fails on retry
 
-A different model means a genuinely different perspective, not an echo chamber. Supported consultants: `claude` (Opus, recommended), `codex`, `gemini`, `gh copilot`, `cursor`.
+There are two levels, detected automatically at startup:
 
-If no external CLI is available, Claude reasons through it independently and documents its thinking in the state file.
+**Level 1 — External CLI** (real second opinion, isolated subprocess):
 
-All consultations are logged in `autopilot-state.json` with timestamps and full Q&A.
+| Consultant | How it's invoked |
+|---|---|
+| `claude:opus` | `claude --model claude-opus-4-6` ⭐ recommended |
+| `claude:sonnet` | `claude --model claude-sonnet-4-6` |
+| `codex` | `codex -p --approval-mode full-auto` |
+| `gemini` | `gemini -p` |
+| `copilot` | `copilot -p` |
+| `cursor` | `cursor -p` |
+
+**Level 2 — Self-reasoning** (fallback when no external CLI is available):
+The model reasons through the blocker inline — listing options, trade-offs, and chosen approach. Less independent than a real second opinion, but documented and logged the same way.
+
+All consultations are logged in `autopilot-state.json` with type (`external` or `self`), timestamps, and full Q&A.
 
 ---
 
