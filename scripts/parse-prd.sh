@@ -98,6 +98,7 @@ for i, match in enumerate(sections):
         "status": "queued",
         "attempts": 0,
         "acceptance_criteria": ac_lines[:5],  # cap at 5
+        "spec": body[:500],
         "body": body[:500],
         "plan_path": None,
         "commit_sha": None,
@@ -172,6 +173,7 @@ for i, block in enumerate(blocks[1:], 1):
         "status": "queued",
         "attempts": 0,
         "acceptance_criteria": ac[:5],
+        "spec": body[:500],
         "body": body[:500],
         "plan_path": None,
         "commit_sha": None,

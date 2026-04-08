@@ -66,7 +66,7 @@ else
         "Attempts: \(.attempts // 0)",
         "",
         "Spec:",
-        (.spec // "(no spec)"),
+        (.spec // .body // "(no spec)"),
         "",
         "Acceptance criteria:",
         ((.acceptance_criteria // []) | .[] | "  - \(.)")
