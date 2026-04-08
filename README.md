@@ -1,6 +1,6 @@
 # superpowers-autopilot
 
-![superpowers-autopilot hero](assets/readme-hero.svg)
+![superpowers-autopilot hero](assets/readme-hero.png)
 
 > From PRD to production with one bootstrap step.
 
