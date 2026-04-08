@@ -83,6 +83,22 @@ The setup, parsing, and state-management scripts require `python3`.
 
 If you skip the install step, the skill will try to install the hook on first invocation as a fallback and will then ask you to restart before continuing.
 
+### AI-assisted install
+
+If you prefer, you can ask Claude Code or another coding agent to perform the
+setup for you with this prompt:
+
+```text
+Set up superpowers-autopilot in this project.
+
+Steps:
+1. Ensure this folder is a git repository. If not, run `git init`.
+2. Clone `https://github.com/rares77/superpowers-autopilot` into `.claude/skills/superpowers-autopilot`.
+3. Run `.claude/skills/superpowers-autopilot/scripts/install.sh` from the project root.
+4. Tell me clearly if a Claude Code restart is required.
+5. Do not modify unrelated project files.
+```
+
 ### Keeping it updated
 
 ```bash
