@@ -34,7 +34,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 - PRD.md exists at the provided path
 - Project is a git repository (clean working tree preferred)
-- Superpowers skills available: `superpowers:writing-plans`, `superpowers:subagent-driven-development`
+- Superpowers skills available: `writing-plans` and `subagent-driven-development` (prefixed as `superpowers:writing-plans` / `superpowers:subagent-driven-development` in Claude Code)
 - Optional: a consultant CLI installed for second-opinion consultations (falls back gracefully)
 
 ---
@@ -217,7 +217,7 @@ If circuit breaker fires, print:
    ```
    ✔ Design review — spec is clear, no questions needed
    ```
-6. **Invoke `superpowers:writing-plans`** with the resolved feature spec (not the original PRD text)
+6. **Invoke `writing-plans`** (also known as `superpowers:writing-plans` in Claude Code) with the resolved feature spec (not the original PRD text)
 7. Validate the generated plan:
    - At least one test per implementation task?
    - Referenced file paths exist or will be created?
@@ -294,7 +294,7 @@ After consulting (either level):
    ```
    🔨 Executing <feature-id> — invoking subagent-driven-development…
    ```
-2. **Invoke `superpowers:subagent-driven-development`** with the validated plan
+2. **Invoke `subagent-driven-development`** (also known as `superpowers:subagent-driven-development` in Claude Code) with the validated plan
 3. For each task subagent, print on start and completion:
    ```
      ⚙ Task <task-index>/<task-total>: <task-name>… [running]
