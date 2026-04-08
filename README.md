@@ -85,11 +85,22 @@ cd ~/.claude/skills/superpowers-autopilot && git pull
 
 ## Try It With the Sample PRD
 
-The `samples/` folder contains a ready-to-run TODO app PRD designed to showcase how the skill works:
+The `samples/` folder contains a ready-to-run TODO app PRD designed to showcase how the skill works. To try it:
 
-```
-/superpowers-autopilot .claude/skills/superpowers-autopilot/samples/todo-app-PRD.md
-```
+1. Create a new empty git repository:
+   ```bash
+   mkdir todo-test && cd todo-test && git init
+   ```
+2. Copy the sample PRD into it:
+   ```bash
+   cp .claude/skills/superpowers-autopilot/samples/PRD.md .
+   # or if installed globally:
+   cp ~/.claude/skills/superpowers-autopilot/samples/PRD.md .
+   ```
+3. Open Claude Code in that folder and run:
+   ```
+   /superpowers-autopilot PRD.md
+   ```
 
 Features 1 and 2 contain deliberate ambiguities — vague storage requirements, undefined validation rules, subjective UX directives ("best approach", "industry standard"). You'll see the design review catch each one, send it to the consultant, and apply the answer before planning begins. Feature 3 is intentionally clear, so the skill proceeds directly to planning with no consultation needed.
 
