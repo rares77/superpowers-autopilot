@@ -265,6 +265,7 @@ superpowers-autopilot/
 ├── SKILL.md                          # Main skill (read this to understand the loop)
 ├── scripts/
 │   ├── install.sh                    # Installs the project guard hook during setup; fallback on first run
+│   ├── autopilot.sh                  # Single runtime entrypoint Claude calls during execution
 │   ├── autopilot-guard.sh            # PreToolUse hook: blocks 4 skills during runs
 │   ├── parse-prd.sh                  # Extract features from PRD.md
 │   ├── state-manager.sh              # Read/write .claude/autopilot-state.json

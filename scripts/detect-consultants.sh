@@ -29,15 +29,13 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./lib/cli-paths.sh
+source "$SCRIPT_DIR/lib/cli-paths.sh"
+
 available=()
 unavailable=()
 recommended=""
-
-# Test a CLI by checking it is installed and responds to --version.
-# We don't attempt an auth call — that would be slow and potentially costly.
-cli_ok() {
-  command -v "$1" &>/dev/null && "$1" --version &>/dev/null
-}
 
 # claude CLI — if available, offer both Opus (upgrade) and Sonnet (same family)
 if cli_ok claude; then
@@ -69,7 +67,8 @@ else
 fi
 
 # Cursor Agent — requires `cursor agent` (headless); plain `cursor` is the IDE launcher
-if command -v cursor &>/dev/null && cursor agent -h &>/dev/null; then
+cursor_bin="$(resolve_cli cursor || true)"
+if [[ -n "$cursor_bin" ]] && "$cursor_bin" agent -h &>/dev/null; then
   available+=("\"cursor\"")
 else
   unavailable+=("\"cursor\"")

@@ -50,7 +50,7 @@ if [[ -f "autopilot-state.json" && ! -f ".claude/autopilot-state.json" ]]; then
   echo "📦 Migrated autopilot-state.json → .claude/autopilot-state.json"
 fi
 
-./scripts/state-manager.sh pending-count 2>/dev/null || echo "0"
+./scripts/autopilot.sh state pending-count 2>/dev/null || echo "0"
 ```
 
 | Result | Action |
@@ -62,7 +62,7 @@ fi
 
 1. Reset any interrupted features:
    ```bash
-   ./scripts/state-manager.sh reset-in-progress
+   ./scripts/autopilot.sh state reset-in-progress
    ```
    Features that were `in_progress` when the session ended are reset to `queued` — safer to re-plan than to continue from an unknown mid-execution state.
 
@@ -100,7 +100,7 @@ fi
   ```
   Then stop. On the next invocation (after restart) the hook will be active and autopilot proceeds normally.
 
-1. **Detect available consultants** → run `scripts/detect-consultants.sh`
+1. **Detect available consultants** → run `scripts/autopilot.sh detect-consultants`
    - Tests each CLI with `--version` (fast, no API call)
    - Two levels: **external CLI** (real second opinion) vs **self-reasoning** (fallback)
    - **Ask the user to choose** (or confirm the recommended default). This is the only operational question autopilot asks before the autonomous run begins:
@@ -141,12 +141,12 @@ fi
 2. Initialize `.claude/autopilot-state.json` — parses the PRD and writes state in one command:
    ```bash
    BRANCH="autopilot/$(date +%Y%m%d)"
-   ./scripts/state-manager.sh init <PRD_PATH> "$BRANCH"
+   ./scripts/autopilot.sh state init <PRD_PATH> "$BRANCH"
    ```
    No intermediate files — `state-manager.sh init` calls `parse-prd.sh` internally.
 3. Save the chosen consultant to state:
    ```bash
-   ./scripts/state-manager.sh set-consultant <chosen-consultant>
+   ./scripts/autopilot.sh state set-consultant <chosen-consultant>
    ```
 4. Create a dedicated git branch: `git checkout -b "$BRANCH"`
 5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
@@ -259,11 +259,11 @@ Trigger when:
 
 **Level 1 — External CLI** (consultant is anything other than `self`):
 ```bash
-AUTOPILOT_CONSULTANT=$(./scripts/state-manager.sh get consultant) \
-  ./scripts/consult.sh "<formatted question>" "<what failed or is ambiguous>"
+AUTOPILOT_CONSULTANT=$(./scripts/autopilot.sh state get consultant) \
+  ./scripts/autopilot.sh consult "<formatted question>" "<what failed or is ambiguous>"
 ```
 `consult.sh` automatically prepends full project context to every call
-(README + current feature spec + current plan via `scripts/build-context.sh`).
+(README + current feature spec + current plan via `scripts/autopilot.sh build-context`).
 The second argument is the **trigger-specific context** only — what went wrong or what is unclear.
 After receiving the answer:
 ```
@@ -318,7 +318,7 @@ After consulting (either level):
    ```
    ⚠ Task <task-name> skipped after 2 failures — feature marked partial
    ```
-5. After all tasks complete → run `scripts/check-tests.sh` and print:
+5. After all tasks complete → run `scripts/autopilot.sh check-tests` and print:
    ```
    🧪 Running tests…
      Passed: <N> | Failed: <M> | Total: <T>
@@ -385,26 +385,26 @@ Next steps:
 ## State Management
 
 All state lives in `.claude/autopilot-state.json` — inside the project's `.claude/` folder, not in the project root.
-Use `scripts/state-manager.sh` to read/write safely:
+Use `scripts/autopilot.sh state` to read/write safely:
 
 ```bash
 # Read
-./scripts/state-manager.sh get current_feature
-./scripts/state-manager.sh get features
-./scripts/state-manager.sh get consultant
+./scripts/autopilot.sh state get current_feature
+./scripts/autopilot.sh state get features
+./scripts/autopilot.sh state get consultant
 
 # Write
-./scripts/state-manager.sh set-current-feature F1
-./scripts/state-manager.sh set-feature-status F1 in_progress
-./scripts/state-manager.sh set-plan-path F1 docs/superpowers/plans/2026-04-07-my-feature.md
-./scripts/state-manager.sh set-commit F1 abc123
-./scripts/state-manager.sh set-consultant claude:opus
-./scripts/state-manager.sh increment consecutive_failures
-./scripts/state-manager.sh reset-failures
-./scripts/state-manager.sh reset-in-progress
-./scripts/state-manager.sh pending-count
-./scripts/state-manager.sh append-consultation F1 external "question" "answer"
-./scripts/state-manager.sh append-consultation F1 self "question" "reasoning"
+./scripts/autopilot.sh state set-current-feature F1
+./scripts/autopilot.sh state set-feature-status F1 in_progress
+./scripts/autopilot.sh state set-plan-path F1 docs/superpowers/plans/2026-04-07-my-feature.md
+./scripts/autopilot.sh state set-commit F1 abc123
+./scripts/autopilot.sh state set-consultant claude:opus
+./scripts/autopilot.sh state increment consecutive_failures
+./scripts/autopilot.sh state reset-failures
+./scripts/autopilot.sh state reset-in-progress
+./scripts/autopilot.sh state pending-count
+./scripts/autopilot.sh state append-consultation F1 external "question" "answer"
+./scripts/autopilot.sh state append-consultation F1 self "question" "reasoning"
 ```
 
 All writes use Python (read → modify → write in-place) — no `/tmp` files.
@@ -416,6 +416,7 @@ All writes use Python (read → modify → write in-place) — no `/tmp` files.
 | File | Purpose |
 |------|---------|
 | `scripts/install.sh` | Installs the project guard hook during setup; fallback if setup was skipped |
+| `scripts/autopilot.sh` | Single runtime entrypoint for state, consultant detection, context, parsing, and test checks |
 | `scripts/autopilot-guard.sh` | PreToolUse hook: blocks 4 interactive skills while `.claude/autopilot-active` exists |
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write .claude/autopilot-state.json |
