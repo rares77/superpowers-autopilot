@@ -18,15 +18,15 @@ description: Use when the user wants to implement all features from a PRD.md aut
 
 ## Overview
 
-Autonomous outer loop that implements every feature in a PRD.md with zero human intervention. You read the PRD, queue features, plan and execute each one using Superpowers skills, consult an external CLI when stuck, and exit with a summary report.
+Autonomous outer loop that implements every feature in a PRD.md with a single bootstrap choice at startup. You read the PRD, let the user choose the consultant once during initialization, then queue features, plan and execute each one using Superpowers skills, consult that chosen CLI when stuck, and exit with a summary report.
 
 **Invocation:** `/superpowers-autopilot <path/to/PRD.md>`
 
 ## Autopilot Rules
 
 1. **Interactive Superpowers skills are blocked by the guard hook** — `brainstorming`, `finishing-a-development-branch`, `executing-plans`, and `using-git-worktrees` are denied at the tool level while `.claude/autopilot-active` exists. You don't need to avoid them manually; the hook enforces it.
-2. **NEVER ask the user questions** — all ambiguities and clarifications go to the consultant (Phase 2b).
-3. **NEVER wait for user approval** between features — the loop is fully autonomous until all features are done or the circuit breaker fires.
+2. **Only ask the user one operational question during Phase 0** — let them choose the consultant from the detected options (or accept the recommended default). After that, do not ask further questions during execution; all ambiguities and clarifications go to the consultant (Phase 2b).
+3. **NEVER wait for user approval after Phase 0** — once initialization is complete, the loop is fully autonomous until all features are done or the circuit breaker fires.
 4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
 5. **Design review replaces brainstorming** — scan every feature spec for ambiguities before planning, resolve them via the consultant, then invoke `writing-plans` with the resolved spec.
 
@@ -102,7 +102,7 @@ fi
 1. **Detect available consultants** → run `scripts/detect-consultants.sh`
    - Tests each CLI with `--version` (fast, no API call)
    - Two levels: **external CLI** (real second opinion) vs **self-reasoning** (fallback)
-   - **Ask the user to choose** (or confirm the recommended default):
+   - **Ask the user to choose** (or confirm the recommended default). This is the only operational question autopilot asks before the autonomous run begins:
 
    *Example — external CLIs found:*
    ```

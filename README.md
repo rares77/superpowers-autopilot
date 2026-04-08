@@ -25,7 +25,7 @@ That's **3 manual touchpoints per feature**. If your PRD has 10 features, you're
 
 ## The Solution
 
-Autopilot takes over Phase 2 entirely. Each feature goes through an autonomous design review, planning, execution, and test cycle:
+Autopilot takes over Phase 2 entirely. After one startup choice of consultant, each feature goes through an autonomous design review, planning, execution, and test cycle:
 
 ```
 PRD.md → autopilot reads features
@@ -38,7 +38,7 @@ PRD.md → autopilot reads features
        → [all done] → summary report + PR
 ```
 
-**Zero manual interventions. You sleep, it ships.**
+**One bootstrap choice, then zero manual interventions per feature. You sleep, it ships.**
 
 > **Note:** Without a PRD, Superpowers works normally — brainstorming runs as usual, you interact with it, and it produces the PRD. Autopilot only kicks in when you have a PRD ready.
 
@@ -129,7 +129,7 @@ Claude Code matches your message against each skill's description and picks the 
 
 **After restart:** Claude will:
 1. Parse your PRD and extract the feature list
-2. Ask which consultant to use when stuck (Claude Opus recommended)
+2. Ask which consultant to use when stuck (Claude Opus recommended). This is the only operational choice before the autonomous run starts.
 3. Create `.claude/autopilot-state.json` to track progress
 4. Create a git branch `autopilot/YYYYMMDD`
 5. For each feature:
@@ -139,6 +139,8 @@ Claude Code matches your message against each skill's description and picks the 
    - Run tests
    - Commit
 6. Print a summary report when done
+
+After step 2, autopilot no longer asks the user for per-feature guidance. Ambiguities, plan gaps, and retries go to the selected consultant or to self-reasoning fallback.
 
 ---
 
