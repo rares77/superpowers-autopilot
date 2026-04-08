@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# state-manager.sh — Read/write autopilot-state.json
+# state-manager.sh — Read/write .claude/autopilot-state.json
 # Usage:
 #   ./scripts/state-manager.sh get <key>
 #   ./scripts/state-manager.sh init <prd-path> <branch> <features-json>
