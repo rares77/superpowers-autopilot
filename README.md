@@ -49,6 +49,7 @@ PRD.md → autopilot reads features
 - [Claude Code](https://claude.ai/code) with Superpowers installed
 - Superpowers skills available: `superpowers:writing-plans`, `superpowers:subagent-driven-development`
 - A git repository with a PRD.md (typically the output of `superpowers:brainstorming`)
+- Python 3 available on `PATH` as `python3`
 - Optional: a consultant CLI for second-opinion consultations when stuck (`claude`, `codex`, `gemini`, `copilot`, or `cursor`)
 
 ---
@@ -72,6 +73,8 @@ cd your-project
 ```
 
 The install step registers the project-level guard hook in `.claude/settings.json`. Restart Claude Code after this step so both the skill and the hook are loaded together. In the recommended onboarding flow, this is a one-time restart per project.
+
+The setup, parsing, and state-management scripts require `python3`.
 
 If you skip the install step, the skill will try to install the hook on first invocation as a fallback and will then ask you to restart before continuing.
 

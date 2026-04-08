@@ -29,6 +29,11 @@ if [[ ! -d ".git" ]]; then
   exit 2
 fi
 
+if ! command -v python3 &>/dev/null; then
+  echo "Error: python3 is required to install the autopilot guard hook." >&2
+  exit 2
+fi
+
 is_installed() {
   [[ -f "$GUARD_DEST" ]] && python3 -c "
 import json, sys
