@@ -35,7 +35,7 @@ PRD.md → autopilot reads features
            → subagent-driven-development (auto)
            → tests
        → main session commits → next feature → repeat
-       → [all done] → summary report + PR
+       → [all done] → summary report
 ```
 
 **One bootstrap choice, then zero manual interventions per feature. You sleep, it ships.**

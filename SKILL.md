@@ -378,10 +378,7 @@ Failed features:
 
 Next steps:
   git log --oneline autopilot/YYYYMMDD
-  gh pr create --base main
 ```
-
-If all features passed → offer to open a PR automatically.
 
 ---
 
