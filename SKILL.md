@@ -1,6 +1,6 @@
 ---
 name: superpowers-autopilot
-description: Use when the user wants to implement all features from a PRD.md automatically with zero manual intervention — "run autopilot on my PRD", "implement everything from PRD", "autopilot mode", "PRD to production", or wants Claude to work through a feature list unattended. Orchestrates superpowers:writing-plans and superpowers:subagent-driven-development in a loop per feature, consulting an external CLI when stuck. Use this skill even if the user just drops a PRD.md path and says "go".
+description: Use when the user wants to implement all features from a PRD.md with autonomous execution after initial setup and consultant selection — "run autopilot on my PRD", "implement everything from PRD", "autopilot mode", "PRD to production", or wants Claude to work through a feature list unattended. Orchestrates superpowers:writing-plans and superpowers:subagent-driven-development in a loop per feature, consulting an external CLI when stuck. Use this skill even if the user just drops a PRD.md path and says "go".
 ---
 
 # Superpowers Autopilot
