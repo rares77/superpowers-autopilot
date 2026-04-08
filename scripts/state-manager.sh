@@ -2,7 +2,7 @@
 # state-manager.sh — Read/write .claude/autopilot-state.json
 # Usage:
 #   ./scripts/state-manager.sh get <key>
-#   ./scripts/state-manager.sh init <prd-path> <branch> <features-json>
+#   ./scripts/state-manager.sh init <prd-path> <branch>   # calls parse-prd.sh internally
 #   ./scripts/state-manager.sh set-current-feature <feature-id>
 #   ./scripts/state-manager.sh set-feature-status <feature-id> <status>
 #   ./scripts/state-manager.sh set-plan-path <feature-id> <path>
@@ -33,36 +33,37 @@ case "$COMMAND" in
   init)
     PRD_PATH="$1"
     BRANCH="$2"
-    FEATURES_JSON="$3"
-    TOTAL=$(echo "$FEATURES_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
-    python3 - "$PRD_PATH" "$BRANCH" "$FEATURES_JSON" "$TOTAL" "$STATE_FILE" <<'PYEOF'
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    mkdir -p ".claude"
+    FEATURES_JSON=$("$SCRIPT_DIR/parse-prd.sh" "$PRD_PATH")
+    python3 - "$PRD_PATH" "$BRANCH" "$FEATURES_JSON" "$STATE_FILE" <<'PYEOF'
 import sys, json
 from datetime import datetime, timezone
 
-prd_path, branch, features_json_str, total, state_file = sys.argv[1:]
+prd_path, branch, features_json_str, state_file = sys.argv[1:]
 features = json.loads(features_json_str)
 
 state = {
     "prd_path": prd_path,
     "started_at": datetime.now(timezone.utc).isoformat(),
     "branch": branch,
+    "current_feature": None,
     "features": features,
     "circuit_breaker": {
         "consecutive_failures": 0,
         "max_before_pause": 3
     },
-    "current_feature": None,
     "stats": {
         "features_done": 0,
         "features_failed": 0,
-        "features_total": int(total),
+        "features_total": len(features),
         "total_consultations": 0
     }
 }
 
 with open(state_file, 'w') as f:
     json.dump(state, f, indent=2)
-print(f"Initialized {state_file} with {total} features.")
+print(f"Initialized {state_file} with {len(features)} features.")
 PYEOF
     ;;
 

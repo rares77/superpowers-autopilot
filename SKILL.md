@@ -44,6 +44,12 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 **Run this before anything else, every invocation:**
 
 ```bash
+# Migrate state file from old location if needed (pre-.claude/ runs)
+if [[ -f "autopilot-state.json" && ! -f ".claude/autopilot-state.json" ]]; then
+  mkdir -p .claude && mv autopilot-state.json .claude/autopilot-state.json
+  echo "📦 Migrated autopilot-state.json → .claude/autopilot-state.json"
+fi
+
 ./scripts/state-manager.sh pending-count 2>/dev/null || echo "0"
 ```
 
@@ -93,8 +99,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
   ```
   Then stop. On the next invocation (after restart) the hook will be active and autopilot proceeds normally.
 
-1. Parse the PRD → run `scripts/parse-prd.sh <PRD_PATH>` to extract feature list as JSON
-2. **Detect available consultants** → run `scripts/detect-consultants.sh`
+1. **Detect available consultants** → run `scripts/detect-consultants.sh`
    - Tests each CLI with `--version` (fast, no API call)
    - Two levels: **external CLI** (real second opinion) vs **self-reasoning** (fallback)
    - **Ask the user to choose** (or confirm the recommended default):
@@ -132,8 +137,13 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
    - Save the chosen consultant to state as `consultant`
    - Valid values: `claude:opus`, `claude:sonnet`, `codex`, `gemini`, `copilot`, `cursor`, `self`
-3. Initialize `.claude/autopilot-state.json` using `templates/autopilot-state.template.json`
-4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
+2. Initialize `.claude/autopilot-state.json` — parses the PRD and writes state in one command:
+   ```bash
+   BRANCH="autopilot/$(date +%Y%m%d)"
+   ./scripts/state-manager.sh init <PRD_PATH> "$BRANCH"
+   ```
+   No intermediate files — `state-manager.sh init` calls `parse-prd.sh` internally.
+3. Create a dedicated git branch: `git checkout -b "$BRANCH"`
 5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
    This enables the PreToolUse hook that blocks interactive Superpowers skills for the rest of this run.
 6. Announce the queue to the user:
