@@ -200,6 +200,14 @@ If circuit breaker fires, print:
    ✔ Design review — spec is clear, no questions needed
    ```
 6. **Invoke `writing-plans`** (also known as `superpowers:writing-plans` in Claude Code) with the resolved feature spec (not the original PRD text)
+   Before invoking it, apply these autopilot-specific constraints:
+   - Treat `.claude/` and cloned skill files as tooling noise, not project source. When assessing project structure, focus on user-owned files only.
+   - If the repo only contains `PRD.md` plus tooling folders, treat it as a fresh repo.
+   - Create `docs/superpowers/plans/` before saving the plan if it does not exist.
+   - When saving the plan with the Write tool, use the required `file_path` parameter.
+   - Keep the plan document implementation-oriented but avoid raw risky DOM sink examples such as `innerHTML`. Prefer textual steps or safe DOM APIs like `textContent`, `replaceChildren`, and `append`.
+   - If a Write hook blocks the plan document because of a risky example, rewrite the plan text to remove the risky example. Do not start changing implementation files during planning.
+   - Do not ask the user which execution mode to use. Autopilot always chooses subagent-driven execution.
 7. Validate the generated plan:
    - At least one test per implementation task?
    - Referenced file paths exist or will be created?

@@ -33,6 +33,14 @@ class SkillDocTest(unittest.TestCase):
         self.assertNotIn("&&", bash_content)
         self.assertNotIn("||", bash_content)
 
+    def test_writing_plans_is_constrained_for_autopilot(self):
+        content = SKILL_DOC.read_text()
+        self.assertIn("Treat `.claude/` and cloned skill files as tooling noise", content)
+        self.assertIn("use the required `file_path` parameter", content)
+        self.assertIn("avoid raw risky DOM sink examples such as `innerHTML`", content)
+        self.assertIn("Do not start changing implementation files during planning.", content)
+        self.assertIn("Autopilot always chooses subagent-driven execution.", content)
+
 
 if __name__ == "__main__":
     unittest.main()
