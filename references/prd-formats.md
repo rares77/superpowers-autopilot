@@ -93,4 +93,4 @@ Real-time data visualization with live updates.
 
 3. **Order matters** — features are queued in document order. Put foundational features (auth, DB schema) before dependent ones (dashboard, reports).
 
-4. **Custom format?** — set `PRD_FORMAT=custom` and provide `PRD_PARSER_CMD` to override the auto-detect logic.
+4. **Use one of the supported formats** — if your PRD uses a custom structure, rewrite the feature list into one of the documented formats before running autopilot.
