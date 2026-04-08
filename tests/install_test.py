@@ -36,7 +36,8 @@ class InstallScriptTest(unittest.TestCase):
 
             launcher = project_dir / ".claude" / "autopilot.sh"
 
-            self.assertEqual(result.returncode, 1)
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("installed", result.stdout)
             self.assertTrue(launcher.exists())
             self.assertTrue(launcher.read_text().startswith("#!/usr/bin/env bash"))
 

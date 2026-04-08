@@ -79,8 +79,8 @@ Autonomous outer loop that implements every feature in a PRD.md with a single bo
 ```bash
 ./.claude/autopilot.sh verify-install
 ```
-- Expected onboarding: the user already ran `scripts/install.sh` during setup, so this should print `already-installed` (exit 0) and you continue immediately.
-- If it prints `installed` (exit 1) → the hook was just registered during verification. Print:
+- Expected onboarding: the user already ran `scripts/install.sh` during setup, so this should print `already-installed` and you continue immediately.
+- If it prints `installed` → the hook was just registered during verification. Print:
   ```
   ⚠ Guard hook was not installed yet, so autopilot installed it now.
     Please restart Claude Code and run the skill again.

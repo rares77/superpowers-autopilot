@@ -12,8 +12,7 @@
 #   - Registers a PreToolUse hook in .claude/settings.json
 #
 # Exit codes:
-#   0 — already installed (no restart needed)
-#   1 — just installed (Claude Code restart required)
+#   0 — success (already installed or just installed)
 #   2 — error
 
 set -euo pipefail
@@ -94,7 +93,7 @@ with open('$SETTINGS_FILE', 'w') as f:
 
   create_launcher
   echo "installed"
-  exit 1  # caller should prompt for restart
+  exit 0
 }
 
 create_launcher() {
