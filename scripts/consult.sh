@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # consult.sh — Get a second opinion from an external CLI model
-# Usage: ./scripts/consult.sh "<question>" "<context>"
+# Usage: ./scripts/consult.sh "<question>" "<trigger context>"
 # Output: Model's answer to stdout
 # Exit codes: 0 = success, 2 = consultant unavailable/failed
 #
@@ -10,26 +10,34 @@
 #   claude:sonnet  — claude CLI with Sonnet model (same family as orchestrator)
 #   codex          — OpenAI codex CLI
 #   gemini         — Google gemini CLI
-#   copilot        — copilot CLI (standalone, not gh copilot)
+#   copilot        — copilot CLI (standalone)
 #   cursor         — cursor CLI
 #   self           — no external CLI; caller handles self-reasoning
 
 set -euo pipefail
 
 QUESTION="${1:-}"
-CONTEXT="${2:-}"
+TRIGGER_CONTEXT="${2:-}"
 TIMEOUT="${AUTOPILOT_CONSULTANT_TIMEOUT:-120}"
 CONSULTANT="${AUTOPILOT_CONSULTANT:-self}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ -z "$QUESTION" ]]; then
   echo "Error: question required" >&2
   exit 1
 fi
 
-FULL_PROMPT="$QUESTION
+# Build project context (README + current feature + current plan)
+PROJECT_CONTEXT=$("$SCRIPT_DIR/build-context.sh" 2>/dev/null || echo "(context unavailable)")
 
-Context:
-$CONTEXT
+FULL_PROMPT="[PROJECT CONTEXT]
+$PROJECT_CONTEXT
+
+[TRIGGER CONTEXT]
+$TRIGGER_CONTEXT
+
+[QUESTION]
+$QUESTION
 
 Please give a concise, actionable answer. Focus on the specific decision or fix needed."
 

@@ -197,14 +197,17 @@ Trigger when:
 ```
 ┌─ 🤝 Consulting <consultant> — <trigger reason> [Feature: <feature-id>]
 │  Q: <the exact question being sent>
-│  Context: <one-line summary of context snippet>
+│  Trigger context: <what failed / what is ambiguous — one sentence>
 ```
 
 **Level 1 — External CLI** (consultant is anything other than `self`):
 ```bash
 AUTOPILOT_CONSULTANT=$(./scripts/state-manager.sh get consultant) \
-  ./scripts/consult.sh "<formatted question>" "<context snippet>"
+  ./scripts/consult.sh "<formatted question>" "<what failed or is ambiguous>"
 ```
+`consult.sh` automatically prepends full project context to every call
+(README + current feature spec + current plan via `scripts/build-context.sh`).
+The second argument is the **trigger-specific context** only — what went wrong or what is unclear.
 After receiving the answer:
 ```
 │  A: <consultant answer, full text>
@@ -353,7 +356,9 @@ Use `scripts/state-manager.sh` to read/write safely:
 | `scripts/autopilot-guard.sh` | PreToolUse hook: blocks 4 interactive skills while `.claude/autopilot-active` exists |
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write autopilot-state.json |
-| `scripts/consult.sh` | Wrapper for consultant CLIs with timeout |
+| `scripts/detect-consultants.sh` | Detect available consultant CLIs and recommend best option |
+| `scripts/build-context.sh` | Assemble project context (README + feature spec + plan) for consultant calls |
+| `scripts/consult.sh` | Call external consultant CLI with full project context; handles all consultant types |
 | `scripts/check-tests.sh` | Run test suite, return pass/fail + diff |
 | `references/prd-formats.md` | Supported PRD formats and parsing rules |
 | `references/consultant-patterns.md` | When/how to consult per situation |

@@ -196,6 +196,8 @@ There are two levels, detected automatically at startup:
 **Level 2 — Self-reasoning** (fallback when no external CLI is available):
 The model reasons through the blocker inline — listing options, trade-offs, and chosen approach. Less independent than a real second opinion, but documented and logged the same way.
 
+Every consultation automatically includes full project context — README, current feature spec, and current plan — so the consultant has everything it needs to give a relevant answer, not just generic advice.
+
 All consultations are logged in `autopilot-state.json` with type (`external` or `self`), timestamps, and full Q&A.
 
 ---
@@ -210,8 +212,9 @@ superpowers-autopilot/
 │   ├── autopilot-guard.sh            # PreToolUse hook: blocks 4 skills during runs
 │   ├── parse-prd.sh                  # Extract features from PRD.md
 │   ├── state-manager.sh              # Read/write autopilot-state.json
-│   ├── consult.sh                    # Wrapper for consultant CLIs
 │   ├── detect-consultants.sh         # Detect available consultant CLIs
+│   ├── build-context.sh              # Assemble project context for consultant calls
+│   ├── consult.sh                    # Call consultant with full project context
 │   └── check-tests.sh                # Run tests, detect regressions
 ├── references/
 │   ├── prd-formats.md                # Supported PRD formats
