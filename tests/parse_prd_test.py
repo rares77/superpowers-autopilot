@@ -28,6 +28,23 @@ def parse_prd(content: str):
 
 
 class ParsePrdTest(unittest.TestCase):
+    def test_yaml_frontmatter_is_not_supported_as_feature_format(self):
+        prd = textwrap.dedent(
+            """
+            ---
+            features:
+              - id: F1
+                name: User Authentication
+                acceptance_criteria:
+                  - OAuth2 login works
+            ---
+            """
+        ).strip()
+
+        features = parse_prd(prd)
+
+        self.assertEqual(features, [])
+
     def test_prefers_explicit_acceptance_lines_over_general_bullets(self):
         prd = textwrap.dedent(
             """
