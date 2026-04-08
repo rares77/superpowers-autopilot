@@ -337,14 +337,20 @@ Use `scripts/state-manager.sh` to read/write safely:
 # Read
 ./scripts/state-manager.sh get current_feature
 ./scripts/state-manager.sh get features
+./scripts/state-manager.sh get consultant
 
 # Write
-./scripts/state-manager.sh set-feature-status F1 done
+./scripts/state-manager.sh set-current-feature F1
+./scripts/state-manager.sh set-feature-status F1 in_progress
+./scripts/state-manager.sh set-plan-path F1 docs/superpowers/plans/2026-04-07-my-feature.md
 ./scripts/state-manager.sh set-commit F1 abc123
+./scripts/state-manager.sh set-consultant claude:opus
 ./scripts/state-manager.sh increment consecutive_failures
 ./scripts/state-manager.sh reset-failures
 ./scripts/state-manager.sh append-codex F1 "question" "answer"
 ```
+
+All writes use Python (read → modify → write in-place) — no `/tmp` files.
 
 ---
 

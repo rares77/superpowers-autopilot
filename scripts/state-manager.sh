@@ -2,12 +2,17 @@
 # state-manager.sh — Read/write autopilot-state.json
 # Usage:
 #   ./scripts/state-manager.sh get <key>
+#   ./scripts/state-manager.sh init <prd-path> <branch> <features-json>
+#   ./scripts/state-manager.sh set-current-feature <feature-id>
 #   ./scripts/state-manager.sh set-feature-status <feature-id> <status>
+#   ./scripts/state-manager.sh set-plan-path <feature-id> <path>
 #   ./scripts/state-manager.sh set-commit <feature-id> <sha>
+#   ./scripts/state-manager.sh set-consultant <consultant>
 #   ./scripts/state-manager.sh increment consecutive_failures
 #   ./scripts/state-manager.sh reset-failures
 #   ./scripts/state-manager.sh append-codex <feature-id> "<question>" "<answer>"
-#   ./scripts/state-manager.sh init <prd-path> <branch> <features-json>
+#
+# All writes use Python (read → modify → write) — no /tmp files needed.
 
 set -euo pipefail
 
@@ -154,6 +159,40 @@ print(f"Consultant set to: {consultant}")
 PYEOF
     ;;
 
+  set-current-feature)
+    require_state
+    FEATURE_ID="$1"
+    python3 - "$STATE_FILE" "$FEATURE_ID" <<'PYEOF'
+import sys, json
+state_file, feature_id = sys.argv[1:]
+with open(state_file) as f:
+    state = json.load(f)
+state["current_feature"] = feature_id
+with open(state_file, 'w') as f:
+    json.dump(state, f, indent=2)
+print(f"Current feature → {feature_id}")
+PYEOF
+    ;;
+
+  set-plan-path)
+    require_state
+    FEATURE_ID="$1"
+    PLAN_PATH="$2"
+    python3 - "$STATE_FILE" "$FEATURE_ID" "$PLAN_PATH" <<'PYEOF'
+import sys, json
+state_file, feature_id, plan_path = sys.argv[1:]
+with open(state_file) as f:
+    state = json.load(f)
+for feat in state["features"]:
+    if feat["id"] == feature_id:
+        feat["plan_path"] = plan_path
+        break
+with open(state_file, 'w') as f:
+    json.dump(state, f, indent=2)
+print(f"Plan path for {feature_id} → {plan_path}")
+PYEOF
+    ;;
+
   reset-failures)
     require_state
     python3 - "$STATE_FILE" <<'PYEOF'
@@ -202,7 +241,7 @@ PYEOF
 
   *)
     echo "Unknown command: $COMMAND"
-    echo "Usage: state-manager.sh {init|get|set-feature-status|set-commit|increment|reset-failures|append-codex}"
+    echo "Usage: state-manager.sh {init|get|set-current-feature|set-feature-status|set-plan-path|set-commit|set-consultant|increment|reset-failures|append-codex}"
     exit 1
     ;;
 esac
