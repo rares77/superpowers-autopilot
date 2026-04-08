@@ -105,11 +105,15 @@ Open Claude Code in your project and run:
 /superpowers-autopilot path/to/PRD.md
 ```
 
-Or just describe what you want:
+Or just describe what you want — the skill is selected automatically based on intent:
 
 ```
 "implement everything in docs/PRD.md autonomously, no manual steps"
+"run autopilot on my PRD"
+"PRD to production, zero manual steps"
 ```
+
+Claude Code matches your message against each skill's description and picks the best fit. You don't need to type `/superpowers-autopilot` explicitly — any phrasing that conveys "implement a PRD automatically" will trigger this skill.
 
 **First invocation:** The skill installs a guard hook and asks you to restart Claude Code once. This is a one-time step per project.
 
