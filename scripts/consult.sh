@@ -43,12 +43,6 @@ $QUESTION
 
 Please give a concise, actionable answer. Focus on the specific decision or fix needed."
 
-prepare_codex_home() {
-  local codex_home="${CODEX_HOME:-$PWD/.claude/codex-home}"
-  mkdir -p "$codex_home"
-  printf '%s\n' "$codex_home"
-}
-
 case "$CONSULTANT" in
   claude:opus)
     claude_bin="$(resolve_cli claude || true)"
@@ -71,9 +65,8 @@ case "$CONSULTANT" in
     if [[ -z "$codex_bin" ]]; then
       echo "Error: codex CLI not found." >&2; exit 2
     fi
-    codex_home="$(prepare_codex_home)"
     # Non-interactive: `codex exec` (prompt via stdin or `-`). Global `-p` is --profile, not print mode.
-    echo "$FULL_PROMPT" | OTEL_SDK_DISABLED=true CODEX_HOME="$codex_home" run_with_timeout "$TIMEOUT" "$codex_bin" exec - --full-auto
+    echo "$FULL_PROMPT" | OTEL_SDK_DISABLED=true run_with_timeout "$TIMEOUT" "$codex_bin" exec - --full-auto
     ;;
 
   gemini)

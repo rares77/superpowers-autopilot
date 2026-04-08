@@ -10,7 +10,7 @@ CONSULT_SCRIPT = REPO_ROOT / "scripts" / "consult.sh"
 
 
 class ConsultScriptTest(unittest.TestCase):
-    def test_codex_uses_exec_and_project_local_codex_home(self):
+    def test_codex_uses_exec_without_overriding_default_codex_home(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             project_dir = tmp / "project"
@@ -30,7 +30,7 @@ class ConsultScriptTest(unittest.TestCase):
                 "  echo \"codex test\"\n"
                 "  exit 0\n"
                 "fi\n"
-                "printf '%s\\n' \"$CODEX_HOME\" > \"$RECORDER_DIR/codex_home.txt\"\n"
+                "printf '%s\\n' \"${CODEX_HOME:-UNSET}\" > \"$RECORDER_DIR/codex_home.txt\"\n"
                 "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/codex_args.txt\"\n"
                 "cat > \"$RECORDER_DIR/codex_stdin.txt\"\n"
                 "echo \"consulted\"\n"
@@ -54,10 +54,7 @@ class ConsultScriptTest(unittest.TestCase):
             codex_stdin = (recorder_dir / "codex_stdin.txt").read_text()
 
             self.assertEqual(output.strip(), "consulted")
-            self.assertEqual(
-                Path(codex_home).resolve(),
-                (project_dir / ".claude" / "codex-home").resolve(),
-            )
+            self.assertEqual(codex_home, "UNSET")
             self.assertEqual(codex_args, "exec - --full-auto")
             self.assertIn("[QUESTION]", codex_stdin)
             self.assertIn("What is 2+2?", codex_stdin)
