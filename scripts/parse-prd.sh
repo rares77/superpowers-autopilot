@@ -67,7 +67,7 @@ for i, match in enumerate(sections):
         "body": body[:500],
         "plan_path": None,
         "commit_sha": None,
-        "codex_consultations": []
+        "consultations": []
     })
 
 print(json.dumps(features, indent=2))
@@ -95,7 +95,7 @@ feature_blocks = re.split(r'\n  - ', yaml_block)
 for block in feature_blocks[1:]:
     lines = block.strip().splitlines()
     f = {"status": "queued", "attempts": 0, "acceptance_criteria": [],
-         "plan_path": None, "commit_sha": None, "codex_consultations": []}
+         "plan_path": None, "commit_sha": None, "consultations": []}
     for line in lines:
         m = re.match(r'\s*(id|name|priority):\s*(.+)', line)
         if m:
@@ -141,7 +141,7 @@ for i, block in enumerate(blocks[1:], 1):
         "body": body[:500],
         "plan_path": None,
         "commit_sha": None,
-        "codex_consultations": []
+        "consultations": []
     })
 
 print(json.dumps(features, indent=2))

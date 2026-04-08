@@ -49,7 +49,7 @@ PRD.md → autopilot reads features
 - [Claude Code](https://claude.ai/code) with Superpowers installed
 - Superpowers skills available: `superpowers:writing-plans`, `superpowers:subagent-driven-development`
 - A git repository with a PRD.md (typically the output of `superpowers:brainstorming`)
-- Optional: a consultant CLI for second-opinion consultations when stuck (`claude`, `codex`, `gemini`, `gh copilot`, or `cursor`)
+- Optional: a consultant CLI for second-opinion consultations when stuck (`claude`, `codex`, `gemini`, `copilot`, or `cursor`)
 
 ---
 

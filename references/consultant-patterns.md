@@ -79,10 +79,14 @@ How do I fix the regression without reverting the feature?
 
 Every consultation must be logged via state-manager:
 ```bash
-./scripts/state-manager.sh append-codex "$FEATURE_ID" "$QUESTION" "$ANSWER"
+# External consultant
+./scripts/state-manager.sh append-consultation "$FEATURE_ID" external "$QUESTION" "$ANSWER"
+
+# Self-reasoning
+./scripts/state-manager.sh append-consultation "$FEATURE_ID" self "$QUESTION" "$REASONING"
 ```
 
-This creates an audit trail in `autopilot-state.json` and increments `total_codex_consultations`.
+This creates an audit trail in `autopilot-state.json` and increments `total_consultations`.
 
 ---
 
