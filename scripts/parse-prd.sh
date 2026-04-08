@@ -41,6 +41,44 @@ with open(sys.argv[1]) as f:
     content = f.read()
 
 features = []
+
+def extract_acceptance_criteria(body: str):
+    explicit = []
+    section = []
+    in_acceptance_section = False
+
+    for line in body.splitlines():
+        stripped = line.strip()
+        normalized = stripped.strip('*').strip()
+
+        inline_match = re.match(r'^[-*]\s*(?:Acceptance|AC)\s*:\s*(.+)$', stripped, re.IGNORECASE)
+        if inline_match:
+            explicit.append(inline_match.group(1).strip())
+            in_acceptance_section = False
+            continue
+
+        if re.fullmatch(r'Acceptance criteria:?', normalized, re.IGNORECASE):
+            in_acceptance_section = True
+            continue
+
+        if in_acceptance_section:
+            bullet_match = re.match(r'^[-*]\s+(.+)$', stripped)
+            if bullet_match:
+                section.append(bullet_match.group(1).strip())
+                continue
+
+            if stripped == "":
+                continue
+
+            in_acceptance_section = False
+
+    if explicit:
+        return explicit
+    if section:
+        return section
+
+    return re.findall(r'^[-*]\s+(.+)$', body, re.MULTILINE)
+
 # Match ### F1: Name or ### Feature 1: Name or ### 1. Name
 pattern = re.compile(r'^#{2,4}\s+(?:F(\d+)|Feature\s+(\d+)|(\d+)\.?)\s*:?\s*(.+)$', re.MULTILINE)
 sections = list(pattern.finditer(content))
@@ -52,11 +90,7 @@ for i, match in enumerate(sections):
     end = sections[i + 1].start() if i + 1 < len(sections) else len(content)
     body = content[start:end].strip()
 
-    # Extract acceptance criteria lines
-    ac_lines = re.findall(r'^[-*]\s*(?:Acceptance|AC|criteria)?:?\s*(.+)$', body, re.MULTILINE | re.IGNORECASE)
-    # Fallback: all bullet points
-    if not ac_lines:
-        ac_lines = re.findall(r'^[-*]\s+(.+)$', body, re.MULTILINE)
+    ac_lines = extract_acceptance_criteria(body)
 
     features.append({
         "id": f"F{num}",
