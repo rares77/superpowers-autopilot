@@ -52,7 +52,7 @@ PRD.md → autopilot reads features
 - Superpowers skills available: `superpowers:writing-plans`, `superpowers:subagent-driven-development`
 - A git repository with a PRD.md (typically the output of `superpowers:brainstorming`)
 - Python 3 available on `PATH` as `python3`
-- Optional: a consultant CLI for second-opinion consultations when stuck (`claude`, `codex`, `gemini`, `copilot`, or `cursor`)
+- Optional: install one or more consultant CLIs for second-opinion consultations when stuck (`claude`, `codex`, `gemini`, `copilot`, or `cursor`). Autopilot auto-detects the ones available at startup and lets you choose one.
 
 ---
 
@@ -239,6 +239,8 @@ The autopilot consults a second opinion in three situations:
 3. **Task fails twice** — same implementation task fails on retry
 
 There are two levels, detected automatically at startup:
+
+If one or more supported CLIs are installed, autopilot detects them automatically at startup, shows which ones are available, recommends a default, and lets you choose which consultant to use for second-opinion consultations during the run.
 
 **Level 1 — External CLI** (real second opinion, isolated subprocess):
 
