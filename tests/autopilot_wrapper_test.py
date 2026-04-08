@@ -124,6 +124,55 @@ class AutopilotWrapperTest(unittest.TestCase):
             self.assertTrue(active_file.exists())
             self.assertEqual(len(data["queued_features"]), 1)
 
+    def test_consult_uses_consultant_from_state_when_env_is_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            project_dir = tmp / "project"
+            project_dir.mkdir()
+            subprocess.check_call(["git", "init"], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call([str(INSTALL_SCRIPT)], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            (project_dir / "README.md").write_text("# Test Project\n")
+            (project_dir / ".claude" / "autopilot-state.json").write_text(
+                '{"consultant":"codex","features":[{"id":"F1","name":"Feature 1","status":"queued"}]}'
+            )
+
+            recorder_dir = tmp / "recordings"
+            recorder_dir.mkdir()
+            bin_dir = tmp / "bin"
+            bin_dir.mkdir()
+            codex = bin_dir / "codex"
+            codex.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                "if [[ \"${1:-}\" == \"--version\" ]]; then\n"
+                "  echo \"codex test\"\n"
+                "  exit 0\n"
+                "fi\n"
+                "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/codex_args.txt\"\n"
+                "cat > \"$RECORDER_DIR/codex_stdin.txt\"\n"
+                "echo \"consulted\"\n"
+            )
+            codex.chmod(0o755)
+
+            env = {
+                "PATH": f"{bin_dir}:/usr/bin:/bin",
+                "RECORDER_DIR": str(recorder_dir),
+            }
+
+            output = subprocess.check_output(
+                [str(WRAPPER), "consult", "What should we do?", "smoke test"],
+                text=True,
+                cwd=project_dir,
+                env=env,
+            )
+
+            codex_args = (recorder_dir / "codex_args.txt").read_text().strip()
+            codex_stdin = (recorder_dir / "codex_stdin.txt").read_text()
+
+            self.assertEqual(output.strip(), "consulted")
+            self.assertEqual(codex_args, "exec - --full-auto")
+            self.assertIn("What should we do?", codex_stdin)
+
 
 if __name__ == "__main__":
     unittest.main()

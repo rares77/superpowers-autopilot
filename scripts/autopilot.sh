@@ -216,6 +216,20 @@ print(json.dumps({
 PYEOF
 }
 
+consult_with_state_default() {
+  local consultant="${AUTOPILOT_CONSULTANT:-}"
+
+  if [[ -z "$consultant" && -f ".claude/autopilot-state.json" ]]; then
+    consultant="$("$SCRIPT_DIR/state-manager.sh" get consultant 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$consultant" ]]; then
+    export AUTOPILOT_CONSULTANT="$consultant"
+  fi
+
+  exec "$SCRIPT_DIR/consult.sh" "$@"
+}
+
 case "$COMMAND" in
   detect-consultants)
     exec "$SCRIPT_DIR/detect-consultants.sh" "$@"
@@ -224,7 +238,7 @@ case "$COMMAND" in
     exec "$SCRIPT_DIR/state-manager.sh" "$@"
     ;;
   consult)
-    exec "$SCRIPT_DIR/consult.sh" "$@"
+    consult_with_state_default "$@"
     ;;
   build-context)
     exec "$SCRIPT_DIR/build-context.sh" "$@"
