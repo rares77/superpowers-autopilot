@@ -59,7 +59,6 @@ PRD.md → autopilot reads features
 
 ```bash
 cd your-project
-mkdir -p .claude/skills
 git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
 ```
 
