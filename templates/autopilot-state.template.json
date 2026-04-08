@@ -2,7 +2,8 @@
   "prd_path": "",
   "started_at": "",
   "branch": "",
-  "consultant": "none",
+  "consultant": "self",
+  "current_feature": null,
   "features": [],
   "circuit_breaker": {
     "consecutive_failures": 0,
@@ -12,6 +13,6 @@
     "features_done": 0,
     "features_failed": 0,
     "features_total": 0,
-    "total_codex_consultations": 0
+    "total_consultations": 0
   }
 }

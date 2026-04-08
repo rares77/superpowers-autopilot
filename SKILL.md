@@ -140,7 +140,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
      [ ] F1: <name>
      [ ] F2: <name>
      ...
-   Consultant: codex | Working autonomously. I'll report when done.
+   Consultant: <consultant> | Working autonomously. I'll report when done.
    ```
 
 ---
@@ -353,7 +353,7 @@ When all features are `"done"` or `"failed"`:
 ══════════════════════════════════
 Features done:    N / total
 Features failed:  F / total
-Codex calls:      M
+Consultations:    M
 Branch:           autopilot/YYYYMMDD
 ══════════════════════════════════
 Failed features:
@@ -387,7 +387,10 @@ Use `scripts/state-manager.sh` to read/write safely:
 ./scripts/state-manager.sh set-consultant claude:opus
 ./scripts/state-manager.sh increment consecutive_failures
 ./scripts/state-manager.sh reset-failures
-./scripts/state-manager.sh append-codex F1 "question" "answer"
+./scripts/state-manager.sh reset-in-progress
+./scripts/state-manager.sh pending-count
+./scripts/state-manager.sh append-consultation F1 external "question" "answer"
+./scripts/state-manager.sh append-consultation F1 self "question" "reasoning"
 ```
 
 All writes use Python (read → modify → write in-place) — no `/tmp` files.

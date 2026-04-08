@@ -12,7 +12,7 @@
 #   ./scripts/state-manager.sh reset-failures
 #   ./scripts/state-manager.sh reset-in-progress   # reset interrupted features to queued
 #   ./scripts/state-manager.sh pending-count       # count queued+in_progress features
-#   ./scripts/state-manager.sh append-codex <feature-id> "<question>" "<answer>"
+#   ./scripts/state-manager.sh append-consultation <feature-id> <type> "<question>" "<answer>"
 #
 # All writes use Python (read → modify → write) — no /tmp files needed.
 
@@ -51,11 +51,12 @@ state = {
         "consecutive_failures": 0,
         "max_before_pause": 3
     },
+    "current_feature": None,
     "stats": {
         "features_done": 0,
         "features_failed": 0,
         "features_total": int(total),
-        "total_codex_consultations": 0
+        "total_consultations": 0
     }
 }
 
@@ -242,20 +243,22 @@ print("consecutive_failures reset to 0")
 PYEOF
     ;;
 
-  append-codex)
+  append-consultation)
     require_state
     FEATURE_ID="$1"
-    QUESTION="$2"
-    ANSWER="$3"
-    python3 - "$STATE_FILE" "$FEATURE_ID" "$QUESTION" "$ANSWER" <<'PYEOF'
+    TYPE="$2"       # "external" or "self"
+    QUESTION="$3"
+    ANSWER="$4"
+    python3 - "$STATE_FILE" "$FEATURE_ID" "$TYPE" "$QUESTION" "$ANSWER" <<'PYEOF'
 import sys, json
 from datetime import datetime, timezone
 
-state_file, feature_id, question, answer = sys.argv[1:]
+state_file, feature_id, ctype, question, answer = sys.argv[1:]
 with open(state_file) as f:
     state = json.load(f)
 
 entry = {
+    "type": ctype,
     "question": question,
     "answer": answer,
     "timestamp": datetime.now(timezone.utc).isoformat()
@@ -263,20 +266,20 @@ entry = {
 
 for feat in state["features"]:
     if feat["id"] == feature_id:
-        feat.setdefault("codex_consultations", []).append(entry)
+        feat.setdefault("consultations", []).append(entry)
         break
 
-state["stats"]["total_codex_consultations"] += 1
+state["stats"]["total_consultations"] = state["stats"].get("total_consultations", 0) + 1
 
 with open(state_file, 'w') as f:
     json.dump(state, f, indent=2)
-print(f"Logged Codex consultation for {feature_id}")
+print(f"Logged {ctype} consultation for {feature_id}")
 PYEOF
     ;;
 
   *)
     echo "Unknown command: $COMMAND"
-    echo "Usage: state-manager.sh {init|get|set-current-feature|set-feature-status|set-plan-path|set-commit|set-consultant|increment|reset-failures|append-codex}"
+    echo "Usage: state-manager.sh {init|get|set-current-feature|set-feature-status|set-plan-path|set-commit|set-consultant|increment|reset-failures|reset-in-progress|pending-count|append-consultation}"
     exit 1
     ;;
 esac
