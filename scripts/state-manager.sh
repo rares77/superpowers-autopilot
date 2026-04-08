@@ -10,6 +10,8 @@
 #   ./scripts/state-manager.sh set-consultant <consultant>
 #   ./scripts/state-manager.sh increment consecutive_failures
 #   ./scripts/state-manager.sh reset-failures
+#   ./scripts/state-manager.sh reset-in-progress   # reset interrupted features to queued
+#   ./scripts/state-manager.sh pending-count       # count queued+in_progress features
 #   ./scripts/state-manager.sh append-codex <feature-id> "<question>" "<answer>"
 #
 # All writes use Python (read → modify → write) — no /tmp files needed.
@@ -190,6 +192,39 @@ for feat in state["features"]:
 with open(state_file, 'w') as f:
     json.dump(state, f, indent=2)
 print(f"Plan path for {feature_id} → {plan_path}")
+PYEOF
+    ;;
+
+  reset-in-progress)
+    require_state
+    python3 - "$STATE_FILE" <<'PYEOF'
+import sys, json
+state_file = sys.argv[1]
+with open(state_file) as f:
+    state = json.load(f)
+reset = []
+for feat in state["features"]:
+    if feat.get("status") == "in_progress":
+        feat["status"] = "queued"
+        reset.append(feat["id"])
+with open(state_file, 'w') as f:
+    json.dump(state, f, indent=2)
+if reset:
+    print(f"Reset to queued: {', '.join(reset)}")
+else:
+    print("No in_progress features found.")
+PYEOF
+    ;;
+
+  pending-count)
+    require_state
+    python3 - "$STATE_FILE" <<'PYEOF'
+import sys, json
+state_file = sys.argv[1]
+with open(state_file) as f:
+    state = json.load(f)
+count = sum(1 for f in state["features"] if f.get("status") in ("queued", "in_progress"))
+print(count)
 PYEOF
     ;;
 

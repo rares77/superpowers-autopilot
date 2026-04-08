@@ -39,6 +39,46 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 ---
 
+## Resume Check
+
+**Run this before anything else, every invocation:**
+
+```bash
+./scripts/state-manager.sh pending-count 2>/dev/null || echo "0"
+```
+
+| Result | Action |
+|--------|--------|
+| `0` or error | No prior run in progress → proceed to **Phase 0** (fresh start) |
+| `> 0` | Prior run found → **resume** (skip Phase 0, go to Phase 1) |
+
+**If resuming:**
+
+1. Reset any interrupted features:
+   ```bash
+   ./scripts/state-manager.sh reset-in-progress
+   ```
+   Features that were `in_progress` when the session ended are reset to `queued` — safer to re-plan than to continue from an unknown mid-execution state.
+
+2. Print resume banner:
+   ```
+   🔄 Resuming autopilot — found existing state
+      Branch:     <branch from state>
+      Consultant: <consultant from state>
+      Remaining:  <N> feature(s) pending
+        [ ] F3: <name>
+        [ ] F5: <name>
+        ...
+      Skipping initialization. Jumping to Phase 1.
+   ```
+
+3. Jump directly to **Phase 1** — the feature loop picks up from the first `queued` feature.
+
+> The Runtime Context section at the top of this skill already injects the current state,
+> so all this information is available before any command runs.
+
+---
+
 ## Phase 0: Initialize
 
 **Step 0 — Auto-install guard hook (runs every time, instant if already done):**
