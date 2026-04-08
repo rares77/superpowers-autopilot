@@ -1,0 +1,86 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">superpowers-autopilot hero banner</title>
+  <desc id="desc">A banner showing PRD to autonomous implementation with review, plan, build, and commit stages.</desc>
+  <defs>
+    <linearGradient id="bg" x1="86" y1="68" x2="1188" y2="588" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8EE"/>
+      <stop offset="1" stop-color="#F7E7D5"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="236" y1="0" x2="1058" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8A3D"/>
+      <stop offset="1" stop-color="#C74A2E"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1280" height="640" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#7B4028" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect x="40" y="36" width="1200" height="568" rx="34" fill="url(#bg)"/>
+  <g opacity="0.32">
+    <circle cx="1124" cy="124" r="84" fill="#FFD0B2"/>
+    <circle cx="1146" cy="134" r="52" fill="#FFF3E6"/>
+    <circle cx="170" cy="516" r="110" fill="#F6D6B8"/>
+  </g>
+  <path d="M928 72C1027 88 1117 140 1170 220C1228 308 1230 404 1178 500" stroke="#E3B18A" stroke-width="2" stroke-linecap="round" stroke-dasharray="6 14"/>
+  <path d="M166 160C272 110 401 84 530 86" stroke="#E3B18A" stroke-width="2" stroke-linecap="round" stroke-dasharray="6 14"/>
+
+  <text x="104" y="120" fill="#9C4F29" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" letter-spacing="3">superpowers-autopilot</text>
+  <text x="104" y="198" fill="#241914" font-family="Georgia, Times New Roman, serif" font-size="68" font-weight="700">PRD -&gt; Autonomous</text>
+  <text x="104" y="270" fill="#241914" font-family="Georgia, Times New Roman, serif" font-size="68" font-weight="700">Implementation</text>
+  <text x="106" y="324" fill="#5F4436" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28">
+    One bootstrap step. Then design review, planning, execution,
+  </text>
+  <text x="106" y="360" fill="#5F4436" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28">
+    testing, and per-feature commits run in an autonomous loop.
+  </text>
+
+  <g filter="url(#shadow)">
+    <rect x="92" y="430" width="1096" height="120" rx="30" fill="#FFFDF9"/>
+  </g>
+
+  <g>
+    <rect x="126" y="456" width="134" height="64" rx="20" fill="#1F1814"/>
+    <text x="193" y="495" text-anchor="middle" fill="#FFF8EE" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28" font-weight="700">PRD</text>
+  </g>
+  <g>
+    <path d="M278 488H330" stroke="#C75C31" stroke-width="8" stroke-linecap="round"/>
+    <path d="M322 474L338 488L322 502" stroke="#C75C31" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g>
+    <rect x="352" y="456" width="174" height="64" rx="20" fill="#FCE1C6" stroke="#E3B18A" stroke-width="2"/>
+    <text x="439" y="495" text-anchor="middle" fill="#7A442B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28" font-weight="700">Review</text>
+  </g>
+  <g>
+    <path d="M544 488H596" stroke="#C75C31" stroke-width="8" stroke-linecap="round"/>
+    <path d="M588 474L604 488L588 502" stroke="#C75C31" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g>
+    <rect x="618" y="456" width="146" height="64" rx="20" fill="#FCE1C6" stroke="#E3B18A" stroke-width="2"/>
+    <text x="691" y="495" text-anchor="middle" fill="#7A442B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28" font-weight="700">Plan</text>
+  </g>
+  <g>
+    <path d="M782 488H834" stroke="#C75C31" stroke-width="8" stroke-linecap="round"/>
+    <path d="M826 474L842 488L826 502" stroke="#C75C31" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g>
+    <rect x="856" y="456" width="154" height="64" rx="20" fill="#FCE1C6" stroke="#E3B18A" stroke-width="2"/>
+    <text x="933" y="495" text-anchor="middle" fill="#7A442B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28" font-weight="700">Build</text>
+  </g>
+  <g>
+    <path d="M1028 488H1080" stroke="#C75C31" stroke-width="8" stroke-linecap="round"/>
+    <path d="M1072 474L1088 488L1072 502" stroke="#C75C31" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g>
+    <rect x="1102" y="456" width="120" height="64" rx="20" fill="url(#accent)"/>
+    <text x="1162" y="495" text-anchor="middle" fill="#FFF8EE" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="26" font-weight="700">Commit</text>
+  </g>
+
+  <g>
+    <rect x="870" y="98" width="264" height="54" rx="18" fill="#FFF6EA" stroke="#E8B998" stroke-width="2"/>
+    <text x="1002" y="131" text-anchor="middle" fill="#6D4838" font-family="ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="600">Claude Code + Superpowers</text>
+  </g>
+  <g>
+    <rect x="884" y="182" width="236" height="54" rx="18" fill="#2A1B14"/>
+    <text x="1002" y="215" text-anchor="middle" fill="#FFF3E6" font-family="ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="700">One bootstrap step</text>
+  </g>
+</svg>

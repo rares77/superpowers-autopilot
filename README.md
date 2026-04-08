@@ -1,5 +1,7 @@
 # superpowers-autopilot
 
+![superpowers-autopilot hero](assets/readme-hero.svg)
+
 > From PRD to production with one bootstrap step.
 
 A [Claude Code](https://claude.ai/code) skill that wraps [Superpowers](https://github.com/obra/superpowers) with an autonomous outer loop, turning the manual "pick feature → plan → execute → repeat" cycle into a fully automated pipeline.
