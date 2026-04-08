@@ -22,6 +22,17 @@ class SkillDocTest(unittest.TestCase):
             content,
         )
 
+    def test_skill_uses_single_startup_commands_without_shell_decorations(self):
+        content = SKILL_DOC.read_text()
+        self.assertIn("./.claude/autopilot.sh startup-status", content)
+        self.assertIn("./.claude/autopilot.sh start-run <PRD_PATH> <chosen-consultant>", content)
+        bash_blocks = re.findall(r"```bash\n(.*?)```", content, re.S)
+        bash_content = "\n".join(bash_blocks)
+        self.assertNotIn("2>&1", bash_content)
+        self.assertNotIn("EXIT:$?", bash_content)
+        self.assertNotIn("&&", bash_content)
+        self.assertNotIn("||", bash_content)
+
 
 if __name__ == "__main__":
     unittest.main()

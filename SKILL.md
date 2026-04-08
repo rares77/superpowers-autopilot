@@ -23,6 +23,7 @@ Autonomous outer loop that implements every feature in a PRD.md with a single bo
 3. **NEVER wait for user approval after Phase 0** — once initialization is complete, the loop is fully autonomous until all features are done or the circuit breaker fires.
 4. **ALWAYS choose subagent-driven execution** when `writing-plans` asks — never inline, never ask the user which one.
 5. **Design review replaces brainstorming** — scan every feature spec for ambiguities before planning, resolve them via the consultant, then invoke `writing-plans` with the resolved spec.
+6. **When running shell commands from this skill, invoke only the bare wrapper command exactly as written.** Do not append `2>&1`, `; echo`, `&&`, `||`, or any extra shell decoration.
 
 ## Prerequisites
 
@@ -38,13 +39,12 @@ Autonomous outer loop that implements every feature in a PRD.md with a single bo
 **Run this before anything else, every invocation:**
 
 ```bash
-./.claude/autopilot.sh resume-check
+./.claude/autopilot.sh startup-status
 ```
 
-| Result | Action |
-|--------|--------|
-| `0` or error | No prior run in progress → proceed to **Phase 0** (fresh start) |
-| `> 0` | Prior run found → **resume** (skip Phase 0, go to Phase 1) |
+- If the JSON says `"mode": "resume"` → skip Phase 0 and resume.
+- If the JSON says `"mode": "fresh"` and `"restart_required": true` → print the restart message below and stop.
+- If the JSON says `"mode": "fresh"` and `"restart_required": false` → use the embedded consultant metadata for the picker.
 
 **If resuming:**
 
@@ -75,20 +75,21 @@ Autonomous outer loop that implements every feature in a PRD.md with a single bo
 
 ## Phase 0: Initialize
 
-**Step 0 — Verify guard hook is installed:**
+**Step 0 — Inspect startup status once:**
 ```bash
-./.claude/autopilot.sh verify-install
+./.claude/autopilot.sh startup-status
 ```
-- Expected onboarding: the user already ran `scripts/install.sh` during setup, so this should print `already-installed` and you continue immediately.
-- If it prints `installed` → the hook was just registered during verification. Print:
+- This single command handles: legacy-state migration, resume detection, fallback install, and consultant detection.
+- If the JSON says `"restart_required": true`, print:
   ```
   ⚠ Guard hook was not installed yet, so autopilot installed it now.
     Please restart Claude Code and run the skill again.
     Recommended onboarding is to run scripts/install.sh before the first invocation so only one restart is needed.
   ```
-  Then stop. On the next invocation (after restart) the hook will be active and autopilot proceeds normally.
+  Then stop.
+- Otherwise, use the returned `consultants` object directly. Do not run `resume-check`, `verify-install`, or `detect-consultants` separately.
 
-1. **Detect available consultants** → run `./.claude/autopilot.sh detect-consultants`
+1. **Ask the user to choose the consultant** from the `consultants` object returned by `startup-status`
    - Tests each CLI with `--version` (fast, no API call)
    - Two levels: **external CLI** (real second opinion) vs **self-reasoning** (fallback)
    - **Ask the user to choose** (or confirm the recommended default). This is the only operational question autopilot asks before the autonomous run begins.
@@ -97,17 +98,11 @@ Autonomous outer loop that implements every feature in a PRD.md with a single bo
 
    *Example — external CLIs found:*
    ```
-   🔍 Consultant detection:
-     ✅ claude:opus   — available ⭐ recommended
-                        Opus = reasoning upgrade over orchestrating Sonnet
-     ✅ claude:sonnet — available (same model family as orchestrator)
-     ✅ codex         — available (different model family)
-     ❌ gemini        — not found
-     ❌ copilot       — not found
-     ❌ cursor        — not found
-
-   Choose consultant: [claude:opus] [claude:sonnet] [codex]
-   Press Enter for claude:opus.
+   Consultant?
+   [claude:opus] recommended
+   [claude:sonnet]
+   [codex]
+   Reply with one option, or press Enter for claude:opus.
    ```
 
    *Example — no external CLIs found:*
@@ -128,20 +123,12 @@ Autonomous outer loop that implements every feature in a PRD.md with a single bo
 
    - Keep the chosen consultant in memory for the next step
    - Valid values: `claude:opus`, `claude:sonnet`, `codex`, `gemini`, `copilot`, `cursor`, `self`
-2. Initialize `.claude/autopilot-state.json` — parses the PRD and writes state in one command:
+2. Initialize the run in one command:
    ```bash
-   BRANCH="autopilot/$(date +%Y%m%d)"
-   ./.claude/autopilot.sh state init <PRD_PATH> "$BRANCH"
+   ./.claude/autopilot.sh start-run <PRD_PATH> <chosen-consultant>
    ```
-   No intermediate files — `state-manager.sh init` calls `parse-prd.sh` internally.
-3. Save the chosen consultant to state:
-   ```bash
-   ./.claude/autopilot.sh state set-consultant <chosen-consultant>
-   ```
-4. Create a dedicated git branch: `git checkout -b "$BRANCH"`
-5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
-   This enables the PreToolUse hook that blocks interactive Superpowers skills for the rest of this run.
-6. Announce the queue to the user:
+   - This single command parses the PRD, initializes state, saves the consultant, creates the branch, and activates `.claude/autopilot-active`.
+3. Announce the queue to the user:
    ```
    🚀 Autopilot starting. Features queued:
      [ ] F1: <name>

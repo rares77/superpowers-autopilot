@@ -1,3 +1,4 @@
+import json
 import subprocess
 import tempfile
 import unittest
@@ -6,6 +7,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = REPO_ROOT / "scripts" / "autopilot.sh"
+INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install.sh"
 
 
 class AutopilotWrapperTest(unittest.TestCase):
@@ -70,6 +72,57 @@ class AutopilotWrapperTest(unittest.TestCase):
             self.assertEqual(output.strip(), "1")
             self.assertFalse(legacy_state.exists())
             self.assertTrue(migrated.exists())
+
+    def test_startup_status_reports_fresh_project_in_one_command(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            subprocess.check_call(["git", "init"], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call([str(INSTALL_SCRIPT)], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            output = subprocess.check_output(
+                [str(WRAPPER), "startup-status"],
+                text=True,
+                cwd=project_dir,
+            )
+
+            data = json.loads(output)
+
+            self.assertEqual(data["mode"], "fresh")
+            self.assertEqual(data["pending_count"], 0)
+            self.assertEqual(data["install_status"], "already-installed")
+            self.assertFalse(data["restart_required"])
+            self.assertIn("consultants", data)
+
+    def test_start_run_initializes_state_branch_and_guard_in_one_command(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            subprocess.check_call(["git", "init"], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call([str(INSTALL_SCRIPT)], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            (project_dir / "PRD.md").write_text(
+                "## Features\n\n### F1: Add item\n- Acceptance: Can add items\n"
+            )
+
+            output = subprocess.check_output(
+                [str(WRAPPER), "start-run", "PRD.md", "self"],
+                text=True,
+                cwd=project_dir,
+            )
+
+            data = json.loads(output)
+            state_file = project_dir / ".claude" / "autopilot-state.json"
+            active_file = project_dir / ".claude" / "autopilot-active"
+            branch = subprocess.check_output(
+                ["git", "branch", "--show-current"],
+                text=True,
+                cwd=project_dir,
+            ).strip()
+
+            self.assertEqual(data["consultant"], "self")
+            self.assertEqual(branch, data["branch"])
+            self.assertTrue(branch.startswith("autopilot/"))
+            self.assertTrue(state_file.exists())
+            self.assertTrue(active_file.exists())
+            self.assertEqual(len(data["queued_features"]), 1)
 
 
 if __name__ == "__main__":

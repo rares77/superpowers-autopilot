@@ -13,6 +13,8 @@
 #   ./scripts/autopilot.sh guard-status
 #   ./scripts/autopilot.sh resume-check
 #   ./scripts/autopilot.sh verify-install
+#   ./scripts/autopilot.sh startup-status
+#   ./scripts/autopilot.sh start-run <prd-path> <consultant>
 
 set -euo pipefail
 
@@ -35,6 +37,8 @@ Usage:
   ./scripts/autopilot.sh guard-status
   ./scripts/autopilot.sh resume-check
   ./scripts/autopilot.sh verify-install
+  ./scripts/autopilot.sh startup-status
+  ./scripts/autopilot.sh start-run <prd-path> <consultant>
 EOF
 }
 
@@ -109,6 +113,109 @@ verify_install() {
   exec "$SKILL_ROOT/scripts/install.sh"
 }
 
+startup_status() {
+  local pending_count="0"
+  local install_status=""
+  local consultants_json=""
+
+  pending_count="$(resume_check)"
+  if [[ "$pending_count" != "0" ]]; then
+    python3 - "$pending_count" <<'PYEOF'
+import json
+import sys
+
+pending_count = int(sys.argv[1])
+print(json.dumps({
+    "mode": "resume",
+    "pending_count": pending_count,
+}))
+PYEOF
+    return 0
+  fi
+
+  if hook_installed; then
+    install_status="already-installed"
+  else
+    install_status="$("$SKILL_ROOT/scripts/install.sh")"
+  fi
+
+  if [[ "$install_status" == "installed" ]]; then
+    python3 <<'PYEOF'
+import json
+
+print(json.dumps({
+    "mode": "fresh",
+    "pending_count": 0,
+    "install_status": "installed",
+    "restart_required": True,
+}))
+PYEOF
+    return 0
+  fi
+
+  consultants_json="$("$SCRIPT_DIR/detect-consultants.sh")"
+  python3 - "$consultants_json" <<'PYEOF'
+import json
+import sys
+
+consultants = json.loads(sys.argv[1])
+print(json.dumps({
+    "mode": "fresh",
+    "pending_count": 0,
+    "install_status": "already-installed",
+    "restart_required": False,
+    "consultants": consultants,
+}))
+PYEOF
+}
+
+next_branch_name() {
+  local base="autopilot/$(date +%Y%m%d)"
+  local candidate="$base"
+  local suffix=2
+
+  while git show-ref --verify --quiet "refs/heads/$candidate"; do
+    candidate="${base}-${suffix}"
+    suffix=$((suffix + 1))
+  done
+
+  printf '%s\n' "$candidate"
+}
+
+start_run() {
+  local prd_path="${1:-}"
+  local consultant="${2:-}"
+  local branch=""
+
+  if [[ -z "$prd_path" || -z "$consultant" ]]; then
+    echo "Usage: ./scripts/autopilot.sh start-run <prd-path> <consultant>" >&2
+    exit 1
+  fi
+
+  branch="$(next_branch_name)"
+  "$SCRIPT_DIR/state-manager.sh" init "$prd_path" "$branch" >/dev/null
+  "$SCRIPT_DIR/state-manager.sh" set-consultant "$consultant" >/dev/null
+  git checkout -b "$branch" >/dev/null 2>&1
+  mkdir -p ".claude"
+  touch ".claude/autopilot-active"
+
+  python3 - ".claude/autopilot-state.json" "$consultant" "$branch" <<'PYEOF'
+import json
+import sys
+
+state_file, consultant, branch = sys.argv[1:]
+with open(state_file) as f:
+    state = json.load(f)
+
+queue = [{"id": feat["id"], "name": feat["name"]} for feat in state["features"]]
+print(json.dumps({
+    "branch": branch,
+    "consultant": consultant,
+    "queued_features": queue,
+}))
+PYEOF
+}
+
 case "$COMMAND" in
   detect-consultants)
     exec "$SCRIPT_DIR/detect-consultants.sh" "$@"
@@ -142,6 +249,12 @@ case "$COMMAND" in
     ;;
   verify-install)
     verify_install
+    ;;
+  startup-status)
+    startup_status
+    ;;
+  start-run)
+    start_run "$@"
     ;;
   ""|-h|--help|help)
     usage
