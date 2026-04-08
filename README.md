@@ -83,6 +83,20 @@ cd ~/.claude/skills/superpowers-autopilot && git pull
 
 ---
 
+## Try It With the Sample PRD
+
+The `samples/` folder contains a ready-to-run TODO app PRD designed to showcase how the skill works:
+
+```
+/superpowers-autopilot .claude/skills/superpowers-autopilot/samples/todo-app-PRD.md
+```
+
+Features 1 and 2 contain deliberate ambiguities — vague storage requirements, undefined validation rules, subjective UX directives ("best approach", "industry standard"). You'll see the design review catch each one, send it to the consultant, and apply the answer before planning begins. Feature 3 is intentionally clear, so the skill proceeds directly to planning with no consultation needed.
+
+It's the fastest way to understand what the skill actually does end-to-end.
+
+---
+
 ## Usage
 
 Open Claude Code in your project and run:
