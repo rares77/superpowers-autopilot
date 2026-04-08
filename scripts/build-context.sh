@@ -5,12 +5,12 @@
 #
 # Collects:
 #   1. Project description (README, first 60 lines)
-#   2. Current feature spec from autopilot-state.json
+#   2. Current feature spec from .claude/autopilot-state.json
 #   3. Current plan content (if plan_path is set in state)
 
 set -euo pipefail
 
-STATE_FILE="autopilot-state.json"
+STATE_FILE=".claude/autopilot-state.json"
 
 # ── 1. Project description ──────────────────────────────────────────────────
 echo "=== PROJECT ==="
@@ -48,7 +48,7 @@ echo ""
 echo "=== CURRENT FEATURE ==="
 
 if [[ ! -f "$STATE_FILE" ]]; then
-  echo "(autopilot-state.json not found)"
+  echo "(.claude/autopilot-state.json not found)"
 else
   if ! command -v jq &>/dev/null; then
     echo "(jq not available — cannot parse state)"

@@ -86,7 +86,7 @@ Every consultation must be logged via state-manager:
 ./scripts/state-manager.sh append-consultation "$FEATURE_ID" self "$QUESTION" "$REASONING"
 ```
 
-This creates an audit trail in `autopilot-state.json` and increments `total_consultations`.
+This creates an audit trail in `.claude/autopilot-state.json` and increments `total_consultations`.
 
 ---
 

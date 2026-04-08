@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-STATE_FILE="${AUTOPILOT_STATE:-autopilot-state.json}"
+STATE_FILE="${AUTOPILOT_STATE:-.claude/autopilot-state.json}"
 COMMAND="${1:-}"
 shift || true
 

@@ -1,8 +1,7 @@
 # macOS
 .DS_Store
 
-# Generated at runtime by the skill
-autopilot-state.json
+# Generated at runtime by the skill (in target project's .claude/ folder)
 .autopilot-test-snapshot.json
 
 # Python cache from scripts

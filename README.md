@@ -131,7 +131,7 @@ Claude Code matches your message against each skill's description and picks the 
 **After restart:** Claude will:
 1. Parse your PRD and extract the feature list
 2. Ask which consultant to use when stuck (Claude Opus recommended)
-3. Create `autopilot-state.json` to track progress
+3. Create `.claude/autopilot-state.json` to track progress
 4. Create a git branch `autopilot/YYYYMMDD`
 5. For each feature:
    - Review the spec for ambiguities, resolve via consultant
@@ -227,7 +227,7 @@ The model reasons through the blocker inline — listing options, trade-offs, an
 
 Every consultation automatically includes full project context — README, current feature spec, and current plan — so the consultant has everything it needs to give a relevant answer, not just generic advice.
 
-All consultations are logged in `autopilot-state.json` with type (`external` or `self`), timestamps, and full Q&A.
+All consultations are logged in `.claude/autopilot-state.json` with type (`external` or `self`), timestamps, and full Q&A.
 
 ---
 
@@ -240,7 +240,7 @@ superpowers-autopilot/
 │   ├── install.sh                    # Auto-installs guard hook on first invocation
 │   ├── autopilot-guard.sh            # PreToolUse hook: blocks 4 skills during runs
 │   ├── parse-prd.sh                  # Extract features from PRD.md
-│   ├── state-manager.sh              # Read/write autopilot-state.json
+│   ├── state-manager.sh              # Read/write .claude/autopilot-state.json
 │   ├── detect-consultants.sh         # Detect available consultant CLIs
 │   ├── build-context.sh              # Assemble project context for consultant calls
 │   ├── consult.sh                    # Call consultant with full project context

@@ -8,7 +8,7 @@ description: Use when the user wants to implement all features from a PRD.md aut
 ## Runtime Context
 
 **Autopilot state:**
-!`cat autopilot-state.json 2>/dev/null || echo "not initialized — fresh run"`
+!`cat .claude/autopilot-state.json 2>/dev/null || echo "not initialized — fresh run"`
 
 **Current git branch:**
 !`git branch --show-current 2>/dev/null || echo "unknown"`
@@ -130,7 +130,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
    - Save the chosen consultant to state as `consultant`
    - Valid values: `claude:opus`, `claude:sonnet`, `codex`, `gemini`, `copilot`, `cursor`, `self`
-3. Initialize `autopilot-state.json` using `templates/autopilot-state.template.json`
+3. Initialize `.claude/autopilot-state.json` using `templates/autopilot-state.template.json`
 4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
 5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
    This enables the PreToolUse hook that blocks interactive Superpowers skills for the rest of this run.
@@ -148,7 +148,7 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 ## Phase 1: Feature Loop
 
 ```
-FOR each feature in autopilot-state.json WHERE status == "queued":
+FOR each feature in .claude/autopilot-state.json WHERE status == "queued":
   → Phase 2: Planning
   → Phase 3: Execution
   → Phase 4: Completion
@@ -370,7 +370,7 @@ If all features passed → offer to open a PR automatically.
 
 ## State Management
 
-All state lives in `autopilot-state.json` at the project root.
+All state lives in `.claude/autopilot-state.json` — inside the project's `.claude/` folder, not in the project root.
 Use `scripts/state-manager.sh` to read/write safely:
 
 ```bash
@@ -404,7 +404,7 @@ All writes use Python (read → modify → write in-place) — no `/tmp` files.
 | `scripts/install.sh` | Auto-installs guard hook on first invocation; idempotent |
 | `scripts/autopilot-guard.sh` | PreToolUse hook: blocks 4 interactive skills while `.claude/autopilot-active` exists |
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
-| `scripts/state-manager.sh` | Read/write autopilot-state.json |
+| `scripts/state-manager.sh` | Read/write .claude/autopilot-state.json |
 | `scripts/detect-consultants.sh` | Detect available consultant CLIs and recommend best option |
 | `scripts/build-context.sh` | Assemble project context (README + feature spec + plan) for consultant calls |
 | `scripts/consult.sh` | Call external consultant CLI with full project context; handles all consultant types |
