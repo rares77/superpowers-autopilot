@@ -214,12 +214,12 @@ There are two levels, detected automatically at startup:
 
 | Consultant | How it's invoked |
 |---|---|
-| `claude:opus` | `claude --model claude-opus-4-6` ⭐ recommended |
-| `claude:sonnet` | `claude --model claude-sonnet-4-6` |
-| `codex` | `codex -p --approval-mode full-auto` |
-| `gemini` | `gemini -p` |
-| `copilot` | `copilot -p` |
-| `cursor` | `cursor -p` |
+| `claude:opus` | `claude -p --model claude-opus-4-6` ⭐ recommended |
+| `claude:sonnet` | `claude -p --model claude-sonnet-4-6` |
+| `codex` | `echo … \| codex exec - --full-auto` (`codex exec`; `-p` is `--profile`) |
+| `gemini` | `gemini -p "…" --approval-mode plan` |
+| `copilot` | `copilot -p "…" -s --no-ask-user` |
+| `cursor` | `cursor agent -p --mode ask` (Agent CLI, not IDE `cursor`) |
 
 **Level 2 — Self-reasoning** (fallback when no external CLI is available):
 The model reasons through the blocker inline — listing options, trade-offs, and chosen approach. Less independent than a real second opinion, but documented and logged the same way.

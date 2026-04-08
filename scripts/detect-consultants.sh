@@ -68,8 +68,8 @@ else
   unavailable+=("\"copilot\"")
 fi
 
-# cursor
-if cli_ok cursor; then
+# Cursor Agent — requires `cursor agent` (headless); plain `cursor` is the IDE launcher
+if command -v cursor &>/dev/null && cursor agent -h &>/dev/null; then
   available+=("\"cursor\"")
 else
   unavailable+=("\"cursor\"")

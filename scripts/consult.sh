@@ -8,10 +8,10 @@
 # Supported values:
 #   claude:opus    — claude CLI with Opus model (recommended, reasoning upgrade)
 #   claude:sonnet  — claude CLI with Sonnet model (same family as orchestrator)
-#   codex          — OpenAI codex CLI
-#   gemini         — Google gemini CLI
-#   copilot        — copilot CLI (standalone)
-#   cursor         — cursor CLI
+#   codex          — OpenAI Codex CLI (`codex exec`, not `codex -p` — -p is --profile)
+#   gemini         — Google Gemini CLI
+#   copilot        — GitHub Copilot CLI (standalone)
+#   cursor         — Cursor Agent CLI (`cursor agent -p`, not IDE `cursor`)
 #   self           — no external CLI; caller handles self-reasoning
 
 set -euo pipefail
@@ -46,42 +46,45 @@ case "$CONSULTANT" in
     if ! command -v claude &>/dev/null; then
       echo "Error: claude CLI not found." >&2; exit 2
     fi
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-opus-4-6
+    timeout "$TIMEOUT" claude -p --model claude-opus-4-6 -- "$FULL_PROMPT"
     ;;
 
   claude:sonnet)
     if ! command -v claude &>/dev/null; then
       echo "Error: claude CLI not found." >&2; exit 2
     fi
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" claude -p --model claude-sonnet-4-6
+    timeout "$TIMEOUT" claude -p --model claude-sonnet-4-6 -- "$FULL_PROMPT"
     ;;
 
   codex)
     if ! command -v codex &>/dev/null; then
       echo "Error: codex CLI not found." >&2; exit 2
     fi
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" codex -p --approval-mode full-auto
+    # Non-interactive: `codex exec` (prompt via stdin or `-`). Global `-p` is --profile, not print mode.
+    echo "$FULL_PROMPT" | timeout "$TIMEOUT" codex exec - --full-auto
     ;;
 
   gemini)
     if ! command -v gemini &>/dev/null; then
       echo "Error: gemini CLI not found." >&2; exit 2
     fi
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" gemini -p
+    # Headless: -p/--prompt; plan = read-only tools (fits advisory Q&A)
+    timeout "$TIMEOUT" gemini -p "$FULL_PROMPT" --approval-mode plan
     ;;
 
   copilot)
     if ! command -v copilot &>/dev/null; then
       echo "Error: copilot CLI not found." >&2; exit 2
     fi
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" copilot -p
+    timeout "$TIMEOUT" copilot -p "$FULL_PROMPT" -s --no-ask-user
     ;;
 
   cursor)
-    if ! command -v cursor &>/dev/null; then
-      echo "Error: cursor CLI not found." >&2; exit 2
+    if ! command -v cursor &>/dev/null || ! cursor agent -h &>/dev/null; then
+      echo "Error: Cursor Agent not found (need \`cursor\` with \`cursor agent\` subcommand)." >&2; exit 2
     fi
-    echo "$FULL_PROMPT" | timeout "$TIMEOUT" cursor -p
+    # IDE binary is \`cursor\`; headless agent is \`cursor agent -p\`. ask mode = read-only Q&A.
+    timeout "$TIMEOUT" cursor agent -p --mode ask -- "$FULL_PROMPT"
     ;;
 
   self)
