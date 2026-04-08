@@ -87,15 +87,16 @@ fi
 
 ## Phase 0: Initialize
 
-**Step 0 — Auto-install guard hook (runs every time, instant if already done):**
+**Step 0 — Verify guard hook is installed:**
 ```bash
 ./scripts/install.sh
 ```
-- If it prints `already-installed` (exit 0) → continue immediately
-- If it prints `installed` (exit 1) → the hook was just registered for the first time. Print:
+- Expected onboarding: the user already ran `scripts/install.sh` during setup, so this should print `already-installed` (exit 0) and you continue immediately.
+- If it prints `installed` (exit 1) → the user skipped the setup step, so the hook was just registered as a fallback. Print:
   ```
-  ⚠ Guard hook installed for the first time.
-    Please restart Claude Code and run the skill again — this is a one-time step.
+  ⚠ Guard hook was not installed yet, so autopilot installed it now.
+    Please restart Claude Code and run the skill again.
+    Recommended onboarding is to run scripts/install.sh before the first invocation so only one restart is needed.
   ```
   Then stop. On the next invocation (after restart) the hook will be active and autopilot proceeds normally.
 

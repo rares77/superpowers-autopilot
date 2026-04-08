@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # install.sh — Install the autopilot guard hook into the current project
 #
-# Normally invoked automatically by the skill on first run (Phase 0).
-# Can also be run manually:
+# Recommended during project setup before the first skill invocation.
+# The skill also invokes it as a fallback if the user skipped setup.
+# Can be run manually:
 #   ./scripts/install.sh            # Install
 #   ./scripts/install.sh --uninstall  # Remove hook and clean up
 #

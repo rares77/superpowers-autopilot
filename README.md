@@ -60,15 +60,20 @@ PRD.md → autopilot reads features
 ```bash
 cd your-project
 git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
+.claude/skills/superpowers-autopilot/scripts/install.sh
 ```
 
 ### Global (available in all your projects)
 
 ```bash
 git clone https://github.com/rares77/superpowers-autopilot ~/.claude/skills/superpowers-autopilot
+cd your-project
+~/.claude/skills/superpowers-autopilot/scripts/install.sh
 ```
 
-That's it. No setup script to run. When you invoke `/superpowers-autopilot` for the first time in a project, the skill installs its guard hook automatically. You'll be asked to restart Claude Code once — after that, everything is fully automatic.
+The install step registers the project-level guard hook in `.claude/settings.json`. Restart Claude Code after this step so both the skill and the hook are loaded together. In the recommended onboarding flow, this is a one-time restart per project.
+
+If you skip the install step, the skill will try to install the hook on first invocation as a fallback and will then ask you to restart before continuing.
 
 ### Keeping it updated
 
@@ -90,13 +95,19 @@ The `samples/` folder contains a ready-to-run TODO app PRD designed to showcase 
    ```bash
    mkdir todo-test && cd todo-test && git init
    ```
-2. Copy the sample PRD into it:
+2. Install the skill and guard hook:
+   ```bash
+   git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
+   .claude/skills/superpowers-autopilot/scripts/install.sh
+   ```
+3. Restart Claude Code once so the hook is active.
+4. Copy the sample PRD into it:
    ```bash
    cp .claude/skills/superpowers-autopilot/samples/PRD.md .
    # or if installed globally:
    cp ~/.claude/skills/superpowers-autopilot/samples/PRD.md .
    ```
-3. Open Claude Code in that folder and run:
+5. Open Claude Code in that folder and run:
    ```
    /superpowers-autopilot PRD.md
    ```
@@ -125,7 +136,9 @@ Or just describe what you want — the skill is selected automatically based on 
 
 Claude Code matches your message against each skill's description and picks the best fit. You don't need to type `/superpowers-autopilot` explicitly — any phrasing that conveys "implement a PRD automatically" will trigger this skill.
 
-**First invocation:** The skill installs a guard hook and asks you to restart Claude Code once. This is a one-time step per project.
+**Recommended first run:** Install the guard hook with `scripts/install.sh`, restart Claude Code once, then invoke the skill.
+
+**Fallback behavior:** If the hook was not installed yet, the skill installs it on first invocation and asks you to restart before continuing. This is a safety net, not the recommended onboarding path.
 
 **After restart:** Claude will:
 1. Parse your PRD and extract the feature list
