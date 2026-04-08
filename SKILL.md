@@ -136,7 +136,7 @@ fi
    Continuing with self-reasoning fallback.
    ```
 
-   - Save the chosen consultant to state as `consultant`
+   - Keep the chosen consultant in memory for the next step
    - Valid values: `claude:opus`, `claude:sonnet`, `codex`, `gemini`, `copilot`, `cursor`, `self`
 2. Initialize `.claude/autopilot-state.json` — parses the PRD and writes state in one command:
    ```bash
@@ -144,7 +144,11 @@ fi
    ./scripts/state-manager.sh init <PRD_PATH> "$BRANCH"
    ```
    No intermediate files — `state-manager.sh init` calls `parse-prd.sh` internally.
-3. Create a dedicated git branch: `git checkout -b "$BRANCH"`
+3. Save the chosen consultant to state:
+   ```bash
+   ./scripts/state-manager.sh set-consultant <chosen-consultant>
+   ```
+4. Create a dedicated git branch: `git checkout -b "$BRANCH"`
 5. **Activate the autopilot guard** — `touch .claude/autopilot-active`
    This enables the PreToolUse hook that blocks interactive Superpowers skills for the rest of this run.
 6. Announce the queue to the user:
