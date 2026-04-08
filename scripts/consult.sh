@@ -43,6 +43,60 @@ $QUESTION
 
 Please give a concise, actionable answer. Focus on the specific decision or fix needed."
 
+CODEX_CONSULT_PROMPT="You are an external consultant for a separate orchestrator.
+Answer the QUESTION directly and concisely.
+Do not inspect repository files.
+Do not invoke skills.
+Do not run shell commands or tools unless absolutely required.
+Do not propose workflows, planning rituals, or process advice.
+If options are provided, choose one explicitly and justify it briefly."
+
+run_codex_consult() {
+  local codex_bin="$1"
+  local temp_dir=""
+  local output_file=""
+  local stdout_file=""
+  local stderr_file=""
+  local status=0
+  local prompt=""
+
+  temp_dir="$(mktemp -d)"
+  output_file="$temp_dir/final.txt"
+  stdout_file="$temp_dir/stdout.txt"
+  stderr_file="$temp_dir/stderr.txt"
+  prompt="$CODEX_CONSULT_PROMPT
+
+$FULL_PROMPT"
+
+  set +e
+  printf '%s\n' "$prompt" | OTEL_SDK_DISABLED=true run_with_timeout "$TIMEOUT" "$codex_bin" exec - \
+    --skip-git-repo-check \
+    -C "$temp_dir" \
+    --ephemeral \
+    -o "$output_file" \
+    --sandbox read-only \
+    >"$stdout_file" 2>"$stderr_file"
+  status=$?
+  set -e
+
+  if [[ $status -ne 0 ]]; then
+    [[ -s "$stderr_file" ]] && cat "$stderr_file" >&2
+    [[ -s "$stdout_file" ]] && cat "$stdout_file" >&2
+    rm -rf "$temp_dir"
+    exit 2
+  fi
+
+  if [[ ! -f "$output_file" ]]; then
+    [[ -s "$stderr_file" ]] && cat "$stderr_file" >&2
+    [[ -s "$stdout_file" ]] && cat "$stdout_file" >&2
+    rm -rf "$temp_dir"
+    exit 2
+  fi
+
+  cat "$output_file"
+  rm -rf "$temp_dir"
+}
+
 case "$CONSULTANT" in
   claude:opus)
     claude_bin="$(resolve_cli claude || true)"
@@ -65,8 +119,7 @@ case "$CONSULTANT" in
     if [[ -z "$codex_bin" ]]; then
       echo "Error: codex CLI not found." >&2; exit 2
     fi
-    # Non-interactive: `codex exec` (prompt via stdin or `-`). Global `-p` is --profile, not print mode.
-    echo "$FULL_PROMPT" | OTEL_SDK_DISABLED=true run_with_timeout "$TIMEOUT" "$codex_bin" exec - --full-auto
+    run_codex_consult "$codex_bin"
     ;;
 
   gemini)

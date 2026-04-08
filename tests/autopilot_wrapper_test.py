@@ -124,6 +124,32 @@ class AutopilotWrapperTest(unittest.TestCase):
             self.assertTrue(active_file.exists())
             self.assertEqual(len(data["queued_features"]), 1)
 
+    def test_begin_feature_sets_current_feature_and_marks_in_progress(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            subprocess.check_call(["git", "init"], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call([str(INSTALL_SCRIPT)], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            (project_dir / "PRD.md").write_text(
+                "## Features\n\n### F1: Add item\n- Acceptance: Can add items\n"
+            )
+            subprocess.check_output(
+                [str(WRAPPER), "start-run", "PRD.md", "self"],
+                text=True,
+                cwd=project_dir,
+            )
+
+            output = subprocess.check_output(
+                [str(WRAPPER), "begin-feature", "F1"],
+                text=True,
+                cwd=project_dir,
+            )
+
+            state = json.loads((project_dir / ".claude" / "autopilot-state.json").read_text())
+
+            self.assertEqual(json.loads(output)["current_feature"], "F1")
+            self.assertEqual(state["current_feature"], "F1")
+            self.assertEqual(state["features"][0]["status"], "in_progress")
+
     def test_consult_uses_consultant_from_state_when_env_is_missing(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
@@ -149,8 +175,15 @@ class AutopilotWrapperTest(unittest.TestCase):
                 "  exit 0\n"
                 "fi\n"
                 "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/codex_args.txt\"\n"
+                "printf '%s\\n' \"$PWD\" > \"$RECORDER_DIR/codex_pwd.txt\"\n"
                 "cat > \"$RECORDER_DIR/codex_stdin.txt\"\n"
-                "echo \"consulted\"\n"
+                "out_file=''\n"
+                "prev=''\n"
+                "for arg in \"$@\"; do\n"
+                "  if [[ \"$prev\" == \"-o\" ]]; then out_file=\"$arg\"; fi\n"
+                "  prev=\"$arg\"\n"
+                "done\n"
+                "printf 'consulted\\n' > \"$out_file\"\n"
             )
             codex.chmod(0o755)
 
@@ -167,11 +200,18 @@ class AutopilotWrapperTest(unittest.TestCase):
             )
 
             codex_args = (recorder_dir / "codex_args.txt").read_text().strip()
+            codex_pwd = (recorder_dir / "codex_pwd.txt").read_text().strip()
             codex_stdin = (recorder_dir / "codex_stdin.txt").read_text()
 
             self.assertEqual(output.strip(), "consulted")
-            self.assertEqual(codex_args, "exec - --full-auto")
+            self.assertIn("exec -", codex_args)
+            self.assertIn("--skip-git-repo-check", codex_args)
+            self.assertIn("--ephemeral", codex_args)
+            self.assertIn("-o", codex_args)
+            self.assertIn("--sandbox read-only", codex_args)
+            self.assertNotEqual(codex_pwd, str(project_dir))
             self.assertIn("What should we do?", codex_stdin)
+            self.assertIn("Do not inspect repository files", codex_stdin)
 
 
 if __name__ == "__main__":

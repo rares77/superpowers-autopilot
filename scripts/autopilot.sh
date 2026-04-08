@@ -15,6 +15,7 @@
 #   ./scripts/autopilot.sh verify-install
 #   ./scripts/autopilot.sh startup-status
 #   ./scripts/autopilot.sh start-run <prd-path> <consultant>
+#   ./scripts/autopilot.sh begin-feature <feature-id>
 
 set -euo pipefail
 
@@ -39,6 +40,7 @@ Usage:
   ./scripts/autopilot.sh verify-install
   ./scripts/autopilot.sh startup-status
   ./scripts/autopilot.sh start-run <prd-path> <consultant>
+  ./scripts/autopilot.sh begin-feature <feature-id>
 EOF
 }
 
@@ -216,6 +218,33 @@ print(json.dumps({
 PYEOF
 }
 
+begin_feature() {
+  local feature_id="${1:-}"
+
+  if [[ -z "$feature_id" ]]; then
+    echo "Usage: ./scripts/autopilot.sh begin-feature <feature-id>" >&2
+    exit 1
+  fi
+
+  "$SCRIPT_DIR/state-manager.sh" set-current-feature "$feature_id" >/dev/null
+  "$SCRIPT_DIR/state-manager.sh" set-feature-status "$feature_id" in_progress >/dev/null
+
+  python3 - ".claude/autopilot-state.json" "$feature_id" <<'PYEOF'
+import json
+import sys
+
+state_file, feature_id = sys.argv[1:]
+with open(state_file) as f:
+    state = json.load(f)
+
+feature = next((feat for feat in state["features"] if feat["id"] == feature_id), None)
+print(json.dumps({
+    "current_feature": state.get("current_feature"),
+    "feature_status": feature.get("status") if feature else None,
+}))
+PYEOF
+}
+
 consult_with_state_default() {
   local consultant="${AUTOPILOT_CONSULTANT:-}"
 
@@ -269,6 +298,9 @@ case "$COMMAND" in
     ;;
   start-run)
     start_run "$@"
+    ;;
+  begin-feature)
+    begin_feature "$@"
     ;;
   ""|-h|--help|help)
     usage

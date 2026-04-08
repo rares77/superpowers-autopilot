@@ -32,8 +32,15 @@ class ConsultScriptTest(unittest.TestCase):
                 "fi\n"
                 "printf '%s\\n' \"${CODEX_HOME:-UNSET}\" > \"$RECORDER_DIR/codex_home.txt\"\n"
                 "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/codex_args.txt\"\n"
+                "printf '%s\\n' \"$PWD\" > \"$RECORDER_DIR/codex_pwd.txt\"\n"
                 "cat > \"$RECORDER_DIR/codex_stdin.txt\"\n"
-                "echo \"consulted\"\n"
+                "out_file=''\n"
+                "prev=''\n"
+                "for arg in \"$@\"; do\n"
+                "  if [[ \"$prev\" == \"-o\" ]]; then out_file=\"$arg\"; fi\n"
+                "  prev=\"$arg\"\n"
+                "done\n"
+                "printf 'consulted\\n' > \"$out_file\"\n"
             )
             codex.chmod(0o755)
 
@@ -51,13 +58,20 @@ class ConsultScriptTest(unittest.TestCase):
 
             codex_home = (recorder_dir / "codex_home.txt").read_text().strip()
             codex_args = (recorder_dir / "codex_args.txt").read_text().strip()
+            codex_pwd = (recorder_dir / "codex_pwd.txt").read_text().strip()
             codex_stdin = (recorder_dir / "codex_stdin.txt").read_text()
 
             self.assertEqual(output.strip(), "consulted")
             self.assertEqual(codex_home, "UNSET")
-            self.assertEqual(codex_args, "exec - --full-auto")
+            self.assertIn("exec -", codex_args)
+            self.assertIn("--skip-git-repo-check", codex_args)
+            self.assertIn("--ephemeral", codex_args)
+            self.assertIn("-o", codex_args)
+            self.assertIn("--sandbox read-only", codex_args)
+            self.assertNotEqual(codex_pwd, str(project_dir))
             self.assertIn("[QUESTION]", codex_stdin)
             self.assertIn("What is 2+2?", codex_stdin)
+            self.assertIn("Do not inspect repository files", codex_stdin)
 
 
 if __name__ == "__main__":

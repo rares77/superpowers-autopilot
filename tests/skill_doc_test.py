@@ -41,6 +41,14 @@ class SkillDocTest(unittest.TestCase):
         self.assertIn("Do not start changing implementation files during planning.", content)
         self.assertIn("Autopilot always chooses subagent-driven execution.", content)
 
+    def test_feature_begin_and_consultant_constraints_are_documented(self):
+        content = SKILL_DOC.read_text()
+        self.assertIn("./.claude/autopilot.sh begin-feature <feature-id>", content)
+        self.assertIn("This sets both `current_feature` and `status = \"in_progress\"`", content)
+        self.assertIn("do not inspect repository files", content)
+        self.assertIn("do not invoke skills", content)
+        self.assertIn("do not propose workflows or planning rituals", content)
+
 
 if __name__ == "__main__":
     unittest.main()

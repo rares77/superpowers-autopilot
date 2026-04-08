@@ -173,7 +173,11 @@ If circuit breaker fires, print:
 ## Phase 2: Planning
 
 1. Read the feature spec from state (name, acceptance_criteria, constraints)
-2. Update state: `status = "in_progress"`, increment `attempts`
+2. Update state for the new active feature in one command:
+   ```bash
+   ./.claude/autopilot.sh begin-feature <feature-id>
+   ```
+   This sets both `current_feature` and `status = "in_progress"` before any consultant call.
 3. Build the planning prompt from `templates/feature-context.template.md`
 4. Print:
    ```
@@ -250,6 +254,12 @@ AUTOPILOT_CONSULTANT="$(./.claude/autopilot.sh state get consultant)"
 `consult.sh` automatically prepends full project context to every call
 (README + current feature spec + current plan via `./.claude/autopilot.sh build-context`).
 The second argument is the **trigger-specific context** only — what went wrong or what is unclear.
+When asking the consultant, treat it as a narrow second-opinion call, not a delegated agent:
+- answer the question directly
+- choose one option explicitly when options are given
+- do not inspect repository files
+- do not invoke skills
+- do not propose workflows or planning rituals
 After receiving the answer:
 ```
 │  A: <consultant answer, full text>
@@ -381,6 +391,7 @@ Use `./.claude/autopilot.sh state` to read/write safely:
 # Write
 ./.claude/autopilot.sh state set-current-feature F1
 ./.claude/autopilot.sh state set-feature-status F1 in_progress
+./.claude/autopilot.sh begin-feature F1
 ./.claude/autopilot.sh state set-plan-path F1 docs/superpowers/plans/2026-04-07-my-feature.md
 ./.claude/autopilot.sh state set-commit F1 abc123
 ./.claude/autopilot.sh state set-consultant claude:opus
