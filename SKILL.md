@@ -415,7 +415,7 @@ All writes use Python (read → modify → write in-place) — no `/tmp` files.
 
 | File | Purpose |
 |------|---------|
-| `scripts/install.sh` | Auto-installs guard hook on first invocation; idempotent |
+| `scripts/install.sh` | Installs the project guard hook during setup; fallback if setup was skipped |
 | `scripts/autopilot-guard.sh` | PreToolUse hook: blocks 4 interactive skills while `.claude/autopilot-active` exists |
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write .claude/autopilot-state.json |
