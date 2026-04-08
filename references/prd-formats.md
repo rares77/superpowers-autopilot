@@ -29,38 +29,7 @@ Detected by: `### F1:` or `### Feature 1:` or `### 1.` headers inside a `## Feat
 
 ---
 
-## Format B: YAML Frontmatter
-
-Detected by: file starts with `---` and contains a `features:` key.
-
-```yaml
----
-features:
-  - id: F1
-    name: User Authentication
-    priority: high
-    acceptance_criteria:
-      - OAuth2 login works
-      - JWT tokens refresh automatically
-  - id: F2
-    name: Dashboard
-    priority: medium
-    acceptance_criteria:
-      - Real-time updates within 500ms
----
-
-# Product Overview
-...rest of PRD...
-```
-
-**Parser behavior:**
-- Each item in `features[]` becomes a feature
-- `id` and `name` required; `priority` optional
-- `acceptance_criteria[]` mapped directly
-
----
-
-## Format C: Superpowers Brainstorm Output
+## Format B: Superpowers Brainstorm Output
 
 Detected by: `## What We're Building` or `## Features` section with `###`/`####` subsections.
 
