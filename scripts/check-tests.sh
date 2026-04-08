@@ -41,7 +41,7 @@ run_tests() {
     vitest)  output=$(npx vitest run --reporter=json 2>&1) || exit_code=$? ;;
     jest)    output=$(npx jest --json 2>&1) || exit_code=$? ;;
     npm)     output=$(npm test 2>&1) || exit_code=$? ;;
-    pytest)  output=$(python -m pytest --tb=short -q 2>&1) || exit_code=$? ;;
+    pytest)  output=$(python3 -m pytest --tb=short -q 2>&1) || exit_code=$? ;;
     cargo)   output=$(cargo test 2>&1) || exit_code=$? ;;
     go)      output=$(go test ./... 2>&1) || exit_code=$? ;;
     make)    output=$(make test 2>&1) || exit_code=$? ;;
