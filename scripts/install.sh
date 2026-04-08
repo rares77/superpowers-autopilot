@@ -21,6 +21,7 @@ set -euo pipefail
 HOOKS_DIR=".claude/hooks"
 SETTINGS_FILE=".claude/settings.json"
 GUARD_DEST="$HOOKS_DIR/autopilot-guard.sh"
+LAUNCHER_DEST=".claude/autopilot.sh"
 SKILL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GUARD_SRC="$SKILL_ROOT/scripts/autopilot-guard.sh"
 
@@ -53,6 +54,7 @@ except Exception:
 
 install_hook() {
   if is_installed; then
+    create_launcher
     echo "already-installed"
     exit 0
   fi
@@ -90,12 +92,25 @@ with open('$SETTINGS_FILE', 'w') as f:
 "
   fi
 
+  create_launcher
   echo "installed"
   exit 1  # caller should prompt for restart
 }
 
+create_launcher() {
+  mkdir -p ".claude"
+  cat >"$LAUNCHER_DEST" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+export AUTOPILOT_SKILL_ROOT="$SKILL_ROOT"
+exec "$SKILL_ROOT/scripts/autopilot.sh" "\$@"
+EOF
+  chmod +x "$LAUNCHER_DEST"
+}
+
 uninstall_hook() {
   rm -f "$GUARD_DEST"
+  rm -f "$LAUNCHER_DEST"
   rm -f ".claude/autopilot-active"
 
   if [[ -f "$SETTINGS_FILE" ]]; then

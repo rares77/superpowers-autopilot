@@ -22,6 +22,24 @@ class InstallScriptTest(unittest.TestCase):
         self.assertIn("run this from a git project root", result.stderr)
         self.assertIn("run 'git init' first", result.stderr)
 
+    def test_creates_project_launcher_for_runtime_commands(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            subprocess.check_call(["git", "init"], cwd=project_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            result = subprocess.run(
+                [str(INSTALL_SCRIPT)],
+                text=True,
+                cwd=project_dir,
+                capture_output=True,
+            )
+
+            launcher = project_dir / ".claude" / "autopilot.sh"
+
+            self.assertEqual(result.returncode, 1)
+            self.assertTrue(launcher.exists())
+            self.assertTrue(launcher.read_text().startswith("#!/usr/bin/env bash"))
+
 
 if __name__ == "__main__":
     unittest.main()
