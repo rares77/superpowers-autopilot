@@ -172,6 +172,104 @@ class ConsultScriptTest(unittest.TestCase):
             self.assertIn("--model gemini-3-pro-preview", gemini_args_1)
             self.assertIn("--model gemini-2.5-pro", gemini_args_2)
 
+    def test_cursor_uses_explicit_primary_model(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            project_dir = tmp / "project"
+            project_dir.mkdir()
+            (project_dir / "README.md").write_text("# Test Project\n")
+
+            recorder_dir = tmp / "recordings"
+            recorder_dir.mkdir()
+
+            bin_dir = tmp / "bin"
+            bin_dir.mkdir()
+            cursor = bin_dir / "cursor"
+            cursor.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                "if [[ \"${1:-}\" == \"agent\" && \"${2:-}\" == \"-h\" ]]; then\n"
+                "  echo \"cursor agent help\"\n"
+                "  exit 0\n"
+                "fi\n"
+                "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/cursor_args_1.txt\"\n"
+                "printf 'cursor-primary-ok\\n'\n"
+            )
+            cursor.chmod(0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:/usr/bin:/bin"
+            env["AUTOPILOT_CONSULTANT"] = "cursor"
+            env["RECORDER_DIR"] = str(recorder_dir)
+
+            output = subprocess.check_output(
+                [str(CONSULT_SCRIPT), "Which storage should we use?", "cursor primary"],
+                text=True,
+                cwd=project_dir,
+                env=env,
+            )
+
+            cursor_args = (recorder_dir / "cursor_args_1.txt").read_text().strip()
+
+            self.assertEqual(output.strip(), "cursor-primary-ok")
+            self.assertIn("agent --model gemini-3-pro -p --mode ask --", cursor_args)
+            self.assertIn("Which storage should we use?", cursor_args)
+
+    def test_cursor_falls_back_to_composer_on_usage_errors(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            project_dir = tmp / "project"
+            project_dir.mkdir()
+            (project_dir / "README.md").write_text("# Test Project\n")
+
+            recorder_dir = tmp / "recordings"
+            recorder_dir.mkdir()
+
+            bin_dir = tmp / "bin"
+            bin_dir.mkdir()
+            cursor = bin_dir / "cursor"
+            cursor.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                "if [[ \"${1:-}\" == \"agent\" && \"${2:-}\" == \"-h\" ]]; then\n"
+                "  echo \"cursor agent help\"\n"
+                "  exit 0\n"
+                "fi\n"
+                "count_file=\"$RECORDER_DIR/cursor_count.txt\"\n"
+                "count=0\n"
+                "if [[ -f \"$count_file\" ]]; then\n"
+                "  count=$(cat \"$count_file\")\n"
+                "fi\n"
+                "count=$((count + 1))\n"
+                "printf '%s' \"$count\" > \"$count_file\"\n"
+                "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/cursor_args_${count}.txt\"\n"
+                "if [[ \"$count\" -eq 1 ]]; then\n"
+                "printf 'You are out of usage-based pricing credits. Increase limits to continue.\\n' >&2\n"
+                "exit 1\n"
+                "fi\n"
+                "printf 'cursor-fallback-ok\\n'\n"
+            )
+            cursor.chmod(0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:/usr/bin:/bin"
+            env["AUTOPILOT_CONSULTANT"] = "cursor"
+            env["RECORDER_DIR"] = str(recorder_dir)
+
+            output = subprocess.check_output(
+                [str(CONSULT_SCRIPT), "What validation rules should apply?", "cursor fallback"],
+                text=True,
+                cwd=project_dir,
+                env=env,
+            )
+
+            cursor_args_1 = (recorder_dir / "cursor_args_1.txt").read_text().strip()
+            cursor_args_2 = (recorder_dir / "cursor_args_2.txt").read_text().strip()
+
+            self.assertEqual(output.strip(), "cursor-fallback-ok")
+            self.assertIn("agent --model gemini-3-pro -p --mode ask --", cursor_args_1)
+            self.assertIn("agent --model composer-2-fast -p --mode ask --", cursor_args_2)
+
 
 if __name__ == "__main__":
     unittest.main()

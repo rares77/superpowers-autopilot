@@ -53,6 +53,8 @@ If options are provided, choose one explicitly and justify it briefly."
 
 GEMINI_PRIMARY_MODEL="${AUTOPILOT_GEMINI_PRIMARY_MODEL:-gemini-3-pro-preview}"
 GEMINI_FALLBACK_MODEL="${AUTOPILOT_GEMINI_FALLBACK_MODEL:-gemini-2.5-pro}"
+CURSOR_PRIMARY_MODEL="${AUTOPILOT_CURSOR_PRIMARY_MODEL:-gemini-3-pro}"
+CURSOR_FALLBACK_MODEL="${AUTOPILOT_CURSOR_FALLBACK_MODEL:-composer-2-fast}"
 
 run_codex_consult() {
   local codex_bin="$1"
@@ -147,6 +149,53 @@ run_gemini_consult() {
   exit 2
 }
 
+run_cursor_consult() {
+  local cursor_bin="$1"
+  local temp_dir=""
+  local stdout_file=""
+  local stderr_file=""
+  local status=0
+  local model=""
+
+  temp_dir="$(mktemp -d)"
+  stdout_file="$temp_dir/stdout.txt"
+  stderr_file="$temp_dir/stderr.txt"
+
+  run_cursor_attempt() {
+    model="$1"
+    : >"$stdout_file"
+    : >"$stderr_file"
+
+    set +e
+    run_with_timeout "$TIMEOUT" "$cursor_bin" agent --model "$model" -p --mode ask -- "$FULL_PROMPT" \
+      >"$stdout_file" 2>"$stderr_file"
+    status=$?
+    set -e
+
+    return "$status"
+  }
+
+  if run_cursor_attempt "$CURSOR_PRIMARY_MODEL"; then
+    cat "$stdout_file"
+    rm -rf "$temp_dir"
+    return 0
+  fi
+
+  if [[ "$CURSOR_FALLBACK_MODEL" != "$CURSOR_PRIMARY_MODEL" ]] && grep -Eqi \
+    "out of usage|you're out of usage|increase limits|usage limit|credits|quota|billing|required" "$stderr_file" "$stdout_file"; then
+    if run_cursor_attempt "$CURSOR_FALLBACK_MODEL"; then
+      cat "$stdout_file"
+      rm -rf "$temp_dir"
+      return 0
+    fi
+  fi
+
+  [[ -s "$stderr_file" ]] && cat "$stderr_file" >&2
+  [[ -s "$stdout_file" ]] && cat "$stdout_file" >&2
+  rm -rf "$temp_dir"
+  exit 2
+}
+
 case "$CONSULTANT" in
   claude:opus)
     claude_bin="$(resolve_cli claude || true)"
@@ -194,8 +243,9 @@ case "$CONSULTANT" in
     if [[ -z "$cursor_bin" ]] || ! "$cursor_bin" agent -h &>/dev/null; then
       echo "Error: Cursor Agent not found (need \`cursor\` with \`cursor agent\` subcommand)." >&2; exit 2
     fi
-    # IDE binary is \`cursor\`; headless agent is \`cursor agent -p\`. ask mode = read-only Q&A.
-    run_with_timeout "$TIMEOUT" "$cursor_bin" agent -p --mode ask -- "$FULL_PROMPT"
+    # IDE binary is `cursor`; headless agent is `cursor agent -p`.
+    # Pin a stronger model first, then fall back on usage/credit exhaustion.
+    run_cursor_consult "$cursor_bin"
     ;;
 
   self)
