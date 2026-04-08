@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
-# autopilot-mode.sh — One-time setup for superpowers-autopilot
+# install.sh — Install the autopilot guard hook into the current project
 #
-# Usage:
-#   ./scripts/autopilot-mode.sh           # Install hook (run once after cloning)
-#   ./scripts/autopilot-mode.sh --uninstall  # Remove hook and clean up
+# Normally invoked automatically by the skill on first run (Phase 0).
+# Can also be run manually:
+#   ./scripts/install.sh            # Install
+#   ./scripts/install.sh --uninstall  # Remove hook and clean up
 #
 # What it does:
 #   - Copies autopilot-guard.sh to .claude/hooks/
 #   - Registers a PreToolUse hook in .claude/settings.json
 #
-# The guard activates/deactivates automatically during each run:
-#   Phase 0: touch .claude/autopilot-active  → guard ON
-#   Phase 5: rm .claude/autopilot-active     → guard OFF
-#
-# Blocked skills (only during active autopilot run):
-#   superpowers:brainstorming, superpowers:finishing-a-development-branch,
-#   superpowers:executing-plans, superpowers:using-git-worktrees
+# Exit codes:
+#   0 — already installed (no restart needed)
+#   1 — just installed (Claude Code restart required)
+#   2 — error
 
 set -euo pipefail
 
@@ -27,32 +25,37 @@ GUARD_SRC="$SKILL_ROOT/scripts/autopilot-guard.sh"
 
 if [[ ! -d ".git" ]]; then
   echo "Error: run this from the project root (where .git/ is)" >&2
-  exit 1
+  exit 2
 fi
 
-install_hook() {
-  mkdir -p "$HOOKS_DIR"
+is_installed() {
+  [[ -f "$GUARD_DEST" ]] && python3 -c "
+import json, sys
+try:
+    with open('$SETTINGS_FILE') as f:
+        d = json.load(f)
+    hooks = d.get('hooks', {}).get('PreToolUse', [])
+    already = any(
+        any(h.get('command', '').endswith('autopilot-guard.sh') for h in entry.get('hooks', []))
+        for entry in hooks
+    )
+    sys.exit(0 if already else 1)
+except Exception:
+    sys.exit(1)
+" 2>/dev/null
+}
 
+install_hook() {
+  if is_installed; then
+    echo "already-installed"
+    exit 0
+  fi
+
+  mkdir -p "$HOOKS_DIR"
   cp "$GUARD_SRC" "$GUARD_DEST"
   chmod +x "$GUARD_DEST"
 
-  # Register PreToolUse hook in settings.json
   if [[ -f "$SETTINGS_FILE" ]]; then
-    if python3 -c "
-import json
-with open('$SETTINGS_FILE') as f:
-    d = json.load(f)
-hooks = d.get('hooks', {}).get('PreToolUse', [])
-already = any(
-    any(h.get('command', '').endswith('autopilot-guard.sh') for h in entry.get('hooks', []))
-    for entry in hooks
-)
-exit(0 if already else 1)
-" 2>/dev/null; then
-      echo "ℹ Hook already registered in $SETTINGS_FILE"
-      return
-    fi
-
     python3 -c "
 import json
 with open('$SETTINGS_FILE') as f:
@@ -81,18 +84,8 @@ with open('$SETTINGS_FILE', 'w') as f:
 "
   fi
 
-  echo "✔ autopilot-mode installed"
-  echo "  Guard script: $GUARD_DEST"
-  echo "  Hook registered in: $SETTINGS_FILE"
-  echo ""
-  echo "  Blocked during autopilot runs (guard is OFF until /superpowers-autopilot runs):"
-  echo "    • superpowers:brainstorming"
-  echo "    • superpowers:finishing-a-development-branch"
-  echo "    • superpowers:executing-plans"
-  echo "    • superpowers:using-git-worktrees"
-  echo ""
-  echo "  ⚠ Restart Claude/Copilot once so the hook registration takes effect."
-  echo "  After that, the guard activates/deactivates automatically — no more restarts needed."
+  echo "installed"
+  exit 1  # caller should prompt for restart
 }
 
 uninstall_hook() {
@@ -118,8 +111,7 @@ with open('$SETTINGS_FILE', 'w') as f:
 " 2>/dev/null
   fi
 
-  echo "✔ autopilot-mode uninstalled"
-  echo "  All Superpowers skills restored."
+  echo "✔ Guard hook uninstalled. All Superpowers skills restored."
 }
 
 case "${1:-install}" in

@@ -41,6 +41,18 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
 
 ## Phase 0: Initialize
 
+**Step 0 — Auto-install guard hook (runs every time, instant if already done):**
+```bash
+./scripts/install.sh
+```
+- If it prints `already-installed` (exit 0) → continue immediately
+- If it prints `installed` (exit 1) → the hook was just registered for the first time. Print:
+  ```
+  ⚠ Guard hook installed for the first time.
+    Please restart Claude Code and run the skill again — this is a one-time step.
+  ```
+  Then stop. On the next invocation (after restart) the hook will be active and autopilot proceeds normally.
+
 1. Parse the PRD → run `scripts/parse-prd.sh <PRD_PATH>` to extract feature list as JSON
 2. **Detect available second-opinion CLIs** → run `scripts/detect-consultants.sh`
    - Shows which of `codex`, `gemini`, `claude` are installed
@@ -55,8 +67,8 @@ Autonomous outer loop that implements every feature in a PRD.md with zero human 
      Which should I consult when stuck? [claude / codex]
      Default: claude/Opus (press Enter to confirm)
      ```
-   - `claude` (Opus) este întotdeauna recomandat — orchestratorul rulează pe Sonnet,
-     Opus oferă un upgrade real de raționament, nu doar context izolat
+   - `claude` (Opus) is always recommended — the orchestrator runs on Sonnet,
+     Opus provides a genuine reasoning upgrade, not just isolated context
    - Save the chosen consultant to state as `consultant`
 3. Initialize `autopilot-state.json` using `templates/autopilot-state.template.json`
 4. Create a dedicated git branch: `git checkout -b autopilot/$(date +%Y%m%d)`
@@ -265,6 +277,10 @@ After consulting:
 
 When all features are `"done"` or `"failed"`:
 
+1. **Deactivate the autopilot guard** — `rm -f .claude/autopilot-active`
+   This re-enables all Superpowers interactive skills for normal use.
+
+2. Print the summary:
 ```
 📊 Autopilot Complete
 ══════════════════════════════════
@@ -282,9 +298,6 @@ Next steps:
 ```
 
 If all features passed → offer to open a PR automatically.
-
-6. **Deactivate the autopilot guard** — `rm -f .claude/autopilot-active`
-   This re-enables all Superpowers interactive skills for normal use.
 
 ---
 
@@ -312,7 +325,7 @@ Use `scripts/state-manager.sh` to read/write safely:
 
 | File | Purpose |
 |------|---------|
-| `scripts/autopilot-mode.sh` | One-time setup: copies guard hook, registers it in `.claude/settings.json` |
+| `scripts/install.sh` | Auto-installs guard hook on first invocation; idempotent |
 | `scripts/autopilot-guard.sh` | PreToolUse hook: blocks 4 interactive skills while `.claude/autopilot-active` exists |
 | `scripts/parse-prd.sh` | Extract features from PRD.md → JSON |
 | `scripts/state-manager.sh` | Read/write autopilot-state.json |

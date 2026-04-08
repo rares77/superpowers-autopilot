@@ -55,13 +55,12 @@ PRD.md → autopilot reads features
 
 ## Installation
 
-### Per-project (recommended for first use)
+### Per-project
 
 ```bash
 cd your-project
 mkdir -p .claude/skills
 git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
-.claude/skills/superpowers-autopilot/scripts/autopilot-mode.sh
 ```
 
 ### Global (available in all your projects)
@@ -70,28 +69,7 @@ git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superp
 git clone https://github.com/rares77/superpowers-autopilot ~/.claude/skills/superpowers-autopilot
 ```
 
-For each project where you want to use autopilot, run the setup script from the project root:
-
-```bash
-~/.claude/skills/superpowers-autopilot/scripts/autopilot-mode.sh
-```
-
-### What does autopilot-mode.sh do?
-
-It installs a **PreToolUse hook** that blocks four Superpowers interactive skills during autopilot runs:
-
-| Blocked skill | Why |
-|---|---|
-| `superpowers:brainstorming` | Has aggressive "MUST use before any creative work" directive that hijacks the loop |
-| `superpowers:finishing-a-development-branch` | Triggers manual PR review flow incompatible with automation |
-| `superpowers:executing-plans` | Opens interactive selection; autopilot owns execution mode |
-| `superpowers:using-git-worktrees` | Forks the working tree mid-feature, breaking the commit sequence |
-
-**The guard is OFF by default.** It only activates when autopilot is running (Phase 0 creates `.claude/autopilot-active`; Phase 5 removes it). You can still invoke all these skills manually at any other time.
-
-**One-time restart required** after running `autopilot-mode.sh` — Claude Code reads hook registrations at startup. After that, the guard activates and deactivates automatically with no further restarts.
-
-To undo: `./scripts/autopilot-mode.sh --uninstall`
+That's it. No setup script to run. When you invoke `/superpowers-autopilot` for the first time in a project, the skill installs its guard hook automatically. You'll be asked to restart Claude Code once — after that, everything is fully automatic.
 
 ### Keeping it updated
 
@@ -119,20 +97,20 @@ Or just describe what you want:
 "implement everything in docs/PRD.md autonomously, no manual steps"
 ```
 
-Claude will:
+**First invocation:** The skill installs a guard hook and asks you to restart Claude Code once. This is a one-time step per project.
+
+**After restart:** Claude will:
 1. Parse your PRD and extract the feature list
 2. Ask which consultant to use when stuck (Claude Opus recommended)
 3. Create `autopilot-state.json` to track progress
 4. Create a git branch `autopilot/YYYYMMDD`
-5. Activate the guard (`touch .claude/autopilot-active`)
-6. For each feature:
+5. For each feature:
    - Review the spec for ambiguities, resolve via consultant
    - Create a plan via `writing-plans`
    - Execute via `subagent-driven-development`
    - Run tests
    - Commit
-7. Deactivate the guard (`rm .claude/autopilot-active`)
-8. Print a summary report when done
+6. Print a summary report when done
 
 ---
 
@@ -178,6 +156,21 @@ Autopilot won't go rogue:
 - **Per-feature commits** — each feature is its own git commit, easy to revert individually
 - **Dedicated branch** — never touches `main` directly
 
+### How the guard hook works
+
+On first invocation, the skill installs a PreToolUse hook that blocks four Superpowers skills that would otherwise hijack the autonomous loop:
+
+| Blocked skill | Why |
+|---|---|
+| `superpowers:brainstorming` | Has aggressive "MUST use before any creative work" directive that hijacks the loop |
+| `superpowers:finishing-a-development-branch` | Triggers manual PR review flow incompatible with automation |
+| `superpowers:executing-plans` | Opens interactive selection; autopilot owns execution mode |
+| `superpowers:using-git-worktrees` | Forks the working tree mid-feature, breaking the commit sequence |
+
+The guard is **OFF by default** — it only activates when autopilot is running (Phase 0 creates `.claude/autopilot-active`; Phase 5 removes it). You can invoke all these skills normally at any other time.
+
+To uninstall: `./scripts/install.sh --uninstall`
+
 ---
 
 ## How It Handles Being Stuck
@@ -201,7 +194,7 @@ All consultations are logged in `autopilot-state.json` with timestamps and full 
 superpowers-autopilot/
 ├── SKILL.md                          # Main skill (read this to understand the loop)
 ├── scripts/
-│   ├── autopilot-mode.sh             # One-time setup: installs the guard hook
+│   ├── install.sh                    # Auto-installs guard hook on first invocation
 │   ├── autopilot-guard.sh            # PreToolUse hook: blocks 4 skills during runs
 │   ├── parse-prd.sh                  # Extract features from PRD.md
 │   ├── state-manager.sh              # Read/write autopilot-state.json
