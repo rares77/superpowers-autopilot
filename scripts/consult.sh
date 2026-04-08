@@ -51,6 +51,9 @@ Do not run shell commands or tools unless absolutely required.
 Do not propose workflows, planning rituals, or process advice.
 If options are provided, choose one explicitly and justify it briefly."
 
+GEMINI_PRIMARY_MODEL="${AUTOPILOT_GEMINI_PRIMARY_MODEL:-gemini-3-pro-preview}"
+GEMINI_FALLBACK_MODEL="${AUTOPILOT_GEMINI_FALLBACK_MODEL:-gemini-2.5-pro}"
+
 run_codex_consult() {
   local codex_bin="$1"
   local temp_dir=""
@@ -97,6 +100,53 @@ $FULL_PROMPT"
   rm -rf "$temp_dir"
 }
 
+run_gemini_consult() {
+  local gemini_bin="$1"
+  local temp_dir=""
+  local stdout_file=""
+  local stderr_file=""
+  local status=0
+  local model=""
+
+  temp_dir="$(mktemp -d)"
+  stdout_file="$temp_dir/stdout.txt"
+  stderr_file="$temp_dir/stderr.txt"
+
+  run_gemini_attempt() {
+    model="$1"
+    : >"$stdout_file"
+    : >"$stderr_file"
+
+    set +e
+    run_with_timeout "$TIMEOUT" "$gemini_bin" --model "$model" -p "$FULL_PROMPT" --approval-mode plan \
+      >"$stdout_file" 2>"$stderr_file"
+    status=$?
+    set -e
+
+    return "$status"
+  }
+
+  if run_gemini_attempt "$GEMINI_PRIMARY_MODEL"; then
+    cat "$stdout_file"
+    rm -rf "$temp_dir"
+    return 0
+  fi
+
+  if [[ "$GEMINI_FALLBACK_MODEL" != "$GEMINI_PRIMARY_MODEL" ]] && grep -Eqi \
+    'RESOURCE_EXHAUSTED|MODEL_CAPACITY_EXHAUSTED|rateLimitExceeded|No capacity available for model|429' "$stderr_file"; then
+    if run_gemini_attempt "$GEMINI_FALLBACK_MODEL"; then
+      cat "$stdout_file"
+      rm -rf "$temp_dir"
+      return 0
+    fi
+  fi
+
+  [[ -s "$stderr_file" ]] && cat "$stderr_file" >&2
+  [[ -s "$stdout_file" ]] && cat "$stdout_file" >&2
+  rm -rf "$temp_dir"
+  exit 2
+}
+
 case "$CONSULTANT" in
   claude:opus)
     claude_bin="$(resolve_cli claude || true)"
@@ -127,8 +177,8 @@ case "$CONSULTANT" in
     if [[ -z "$gemini_bin" ]]; then
       echo "Error: gemini CLI not found." >&2; exit 2
     fi
-    # Headless: -p/--prompt; plan = read-only tools (fits advisory Q&A)
-    run_with_timeout "$TIMEOUT" "$gemini_bin" -p "$FULL_PROMPT" --approval-mode plan
+    # Force a stable Pro model first, then fall back on provider-side capacity errors.
+    run_gemini_consult "$gemini_bin"
     ;;
 
   copilot)

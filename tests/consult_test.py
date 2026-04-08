@@ -73,6 +73,105 @@ class ConsultScriptTest(unittest.TestCase):
             self.assertIn("What is 2+2?", codex_stdin)
             self.assertIn("Do not inspect repository files", codex_stdin)
 
+    def test_gemini_uses_explicit_primary_model(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            project_dir = tmp / "project"
+            project_dir.mkdir()
+            (project_dir / "README.md").write_text("# Test Project\n")
+
+            recorder_dir = tmp / "recordings"
+            recorder_dir.mkdir()
+
+            bin_dir = tmp / "bin"
+            bin_dir.mkdir()
+            gemini = bin_dir / "gemini"
+            gemini.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                "if [[ \"${1:-}\" == \"--version\" ]]; then\n"
+                "  echo \"gemini test\"\n"
+                "  exit 0\n"
+                "fi\n"
+                "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/gemini_args_1.txt\"\n"
+                "printf 'gemini-primary-ok\\n'\n"
+            )
+            gemini.chmod(0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:/usr/bin:/bin"
+            env["AUTOPILOT_CONSULTANT"] = "gemini"
+            env["RECORDER_DIR"] = str(recorder_dir)
+
+            output = subprocess.check_output(
+                [str(CONSULT_SCRIPT), "What storage should we use?", "model selection"],
+                text=True,
+                cwd=project_dir,
+                env=env,
+            )
+
+            gemini_args = (recorder_dir / "gemini_args_1.txt").read_text().strip()
+
+            self.assertEqual(output.strip(), "gemini-primary-ok")
+            self.assertIn("--model gemini-3-pro-preview", gemini_args)
+            self.assertIn("--approval-mode plan", gemini_args)
+            self.assertIn("What storage should we use?", gemini_args)
+
+    def test_gemini_falls_back_to_second_model_on_capacity_errors(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            project_dir = tmp / "project"
+            project_dir.mkdir()
+            (project_dir / "README.md").write_text("# Test Project\n")
+
+            recorder_dir = tmp / "recordings"
+            recorder_dir.mkdir()
+
+            bin_dir = tmp / "bin"
+            bin_dir.mkdir()
+            gemini = bin_dir / "gemini"
+            gemini.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                "if [[ \"${1:-}\" == \"--version\" ]]; then\n"
+                "  echo \"gemini test\"\n"
+                "  exit 0\n"
+                "fi\n"
+                "count_file=\"$RECORDER_DIR/gemini_count.txt\"\n"
+                "count=0\n"
+                "if [[ -f \"$count_file\" ]]; then\n"
+                "  count=$(cat \"$count_file\")\n"
+                "fi\n"
+                "count=$((count + 1))\n"
+                "printf '%s' \"$count\" > \"$count_file\"\n"
+                "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/gemini_args_${count}.txt\"\n"
+                "if [[ \"$count\" -eq 1 ]]; then\n"
+                "  printf '429 RESOURCE_EXHAUSTED No capacity available for model\\n' >&2\n"
+                "  exit 1\n"
+                "fi\n"
+                "printf 'gemini-fallback-ok\\n'\n"
+            )
+            gemini.chmod(0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:/usr/bin:/bin"
+            env["AUTOPILOT_CONSULTANT"] = "gemini"
+            env["RECORDER_DIR"] = str(recorder_dir)
+
+            output = subprocess.check_output(
+                [str(CONSULT_SCRIPT), "What validation rules apply?", "capacity fallback"],
+                text=True,
+                cwd=project_dir,
+                env=env,
+            )
+
+            gemini_args_1 = (recorder_dir / "gemini_args_1.txt").read_text().strip()
+            gemini_args_2 = (recorder_dir / "gemini_args_2.txt").read_text().strip()
+
+            self.assertEqual(output.strip(), "gemini-fallback-ok")
+            self.assertIn("--model gemini-3-pro-preview", gemini_args_1)
+            self.assertIn("--model gemini-2.5-pro", gemini_args_2)
+
 
 if __name__ == "__main__":
     unittest.main()
