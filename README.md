@@ -56,10 +56,14 @@ PRD.md → autopilot reads features
 
 ## Installation
 
+Run the setup commands from an existing git repository. If the project is new,
+initialize it first with `git init`.
+
 ### Per-project
 
 ```bash
 cd your-project
+# if needed: git init
 git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superpowers-autopilot
 .claude/skills/superpowers-autopilot/scripts/install.sh
 ```
@@ -69,6 +73,7 @@ git clone https://github.com/rares77/superpowers-autopilot .claude/skills/superp
 ```bash
 git clone https://github.com/rares77/superpowers-autopilot ~/.claude/skills/superpowers-autopilot
 cd your-project
+# if needed: git init
 ~/.claude/skills/superpowers-autopilot/scripts/install.sh
 ```
 

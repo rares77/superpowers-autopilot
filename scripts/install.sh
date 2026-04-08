@@ -25,7 +25,7 @@ SKILL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GUARD_SRC="$SKILL_ROOT/scripts/autopilot-guard.sh"
 
 if [[ ! -d ".git" ]]; then
-  echo "Error: run this from the project root (where .git/ is)" >&2
+  echo "Error: run this from a git project root (where .git/ is). If this is a new project, run 'git init' first." >&2
   exit 2
 fi
 
