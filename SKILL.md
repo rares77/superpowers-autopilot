@@ -210,8 +210,7 @@ If circuit breaker fires, print:
    - Create `docs/superpowers/plans/` before saving the plan if it does not exist.
    - When saving the plan with the Write tool, use the required `file_path` parameter.
    - Keep the plan document implementation-oriented but avoid raw risky DOM sink examples such as `innerHTML`. Prefer textual steps or safe DOM APIs like `textContent`, `replaceChildren`, and `append`.
-   - Avoid the literal token `exec(` anywhere in the plan text, even for harmless APIs like SQLite `db.exec()`, because some security hooks flag it as command execution. Prefer alternatives like `db.prepare(...).run(...)` or plain-text descriptions.
-   - If a Write hook blocks the plan document because of a risky example or false-positive pattern match, rewrite the plan text to remove the trigger phrase. Do not start changing implementation files during planning.
+   - If a Write hook blocks the plan document because of a risky example, rewrite the plan text to remove the risky example. Do not start changing implementation files during planning.
    - Do not ask the user which execution mode to use. Autopilot always chooses subagent-driven execution.
 7. Validate the generated plan:
    - At least one test per implementation task?

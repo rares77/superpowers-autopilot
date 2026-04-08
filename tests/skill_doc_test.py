@@ -38,7 +38,6 @@ class SkillDocTest(unittest.TestCase):
         self.assertIn("Treat `.claude/` and cloned skill files as tooling noise", content)
         self.assertIn("use the required `file_path` parameter", content)
         self.assertIn("avoid raw risky DOM sink examples such as `innerHTML`", content)
-        self.assertIn("Avoid the literal token `exec(` anywhere in the plan text", content)
         self.assertIn("Do not start changing implementation files during planning.", content)
         self.assertIn("Autopilot always chooses subagent-driven execution.", content)
 
