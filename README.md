@@ -190,7 +190,7 @@ Autopilot won't go rogue:
 
 ### How the guard hook works
 
-On first invocation, the skill installs a PreToolUse hook that blocks four Superpowers skills that would otherwise hijack the autonomous loop:
+During setup, `scripts/install.sh` registers a PreToolUse hook that blocks four Superpowers skills that would otherwise hijack the autonomous loop. If setup was skipped, the first invocation installs the same hook as a fallback and asks for a restart before continuing:
 
 | Blocked skill | Why |
 |---|---|
@@ -240,7 +240,7 @@ All consultations are logged in `.claude/autopilot-state.json` with type (`exter
 superpowers-autopilot/
 ├── SKILL.md                          # Main skill (read this to understand the loop)
 ├── scripts/
-│   ├── install.sh                    # Auto-installs guard hook on first invocation
+│   ├── install.sh                    # Installs the project guard hook during setup; fallback on first run
 │   ├── autopilot-guard.sh            # PreToolUse hook: blocks 4 skills during runs
 │   ├── parse-prd.sh                  # Extract features from PRD.md
 │   ├── state-manager.sh              # Read/write .claude/autopilot-state.json
