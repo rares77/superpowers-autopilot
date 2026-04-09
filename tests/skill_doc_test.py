@@ -21,8 +21,6 @@ class SkillDocTest(unittest.TestCase):
             "Stop after asking the consultant question and wait for the user's choice.",
             content,
         )
-        self.assertIn("A short bracketed list plus a `Default:` line is preferred.", content)
-        self.assertIn("You may also reply with 1, 2, or 3.", content)
 
     def test_skill_uses_single_startup_commands_without_shell_decorations(self):
         content = SKILL_DOC.read_text()
