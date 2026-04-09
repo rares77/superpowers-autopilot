@@ -122,6 +122,7 @@ run_gemini_consult() {
   local stderr_file=""
   local status=0
   local model=""
+  local response=""
 
   temp_dir="$(mktemp -d)"
   stdout_file="$temp_dir/stdout.txt"
@@ -133,7 +134,7 @@ run_gemini_consult() {
     : >"$stderr_file"
 
     set +e
-    run_with_cli_node_first "$gemini_bin" --model "$model" -p "$FULL_PROMPT" --approval-mode plan \
+    run_with_cli_node_first "$gemini_bin" --model "$model" -p "$FULL_PROMPT" --output-format json \
       >"$stdout_file" 2>"$stderr_file"
     status=$?
     set -e
@@ -142,17 +143,45 @@ run_gemini_consult() {
   }
 
   if run_gemini_attempt "$GEMINI_PRIMARY_MODEL"; then
-    cat "$stdout_file"
+    response="$(python3 - "$stdout_file" <<'PYEOF'
+import json
+import sys
+
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+
+print(data.get("response", "").rstrip())
+PYEOF
+)" || response=""
+    if [[ -n "$response" ]]; then
+      printf '%s\n' "$response"
+      rm -rf "$temp_dir"
+      return 0
+    fi
     rm -rf "$temp_dir"
-    return 0
+    exit 2
   fi
 
   if [[ "$GEMINI_FALLBACK_MODEL" != "$GEMINI_PRIMARY_MODEL" ]] && grep -Eqi \
     'RESOURCE_EXHAUSTED|MODEL_CAPACITY_EXHAUSTED|rateLimitExceeded|No capacity available for model|429' "$stderr_file"; then
     if run_gemini_attempt "$GEMINI_FALLBACK_MODEL"; then
-      cat "$stdout_file"
+      response="$(python3 - "$stdout_file" <<'PYEOF'
+import json
+import sys
+
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+
+print(data.get("response", "").rstrip())
+PYEOF
+)" || response=""
+      if [[ -n "$response" ]]; then
+        printf '%s\n' "$response"
+        rm -rf "$temp_dir"
+        return 0
+      fi
       rm -rf "$temp_dir"
-      return 0
+      exit 2
     fi
   fi
 

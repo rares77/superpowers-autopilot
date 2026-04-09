@@ -52,6 +52,38 @@ run_with_timeout() {
     timeout "$seconds" "$@"
   elif command -v gtimeout >/dev/null 2>&1; then
     gtimeout "$seconds" "$@"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c '
+import os
+import signal
+import subprocess
+import sys
+
+seconds = int(sys.argv[1])
+cmd = sys.argv[2:]
+
+try:
+    proc = subprocess.Popen(cmd, start_new_session=True)
+    try:
+        proc.wait(timeout=seconds)
+        sys.exit(proc.returncode)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait()
+        sys.exit(124)
+except FileNotFoundError:
+    sys.exit(127)
+' "$seconds" "$@"
   else
     "$@"
   fi

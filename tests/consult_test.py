@@ -95,7 +95,7 @@ class ConsultScriptTest(unittest.TestCase):
                 "fi\n"
                 "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/gemini_args_1.txt\"\n"
                 "printf '%s\\n' \"$PATH\" > \"$RECORDER_DIR/gemini_path_1.txt\"\n"
-                "printf 'gemini-primary-ok\\n'\n"
+                "printf '{\"response\":\"gemini-primary-ok\"}\\n'\n"
             )
             gemini.chmod(0o755)
 
@@ -116,7 +116,8 @@ class ConsultScriptTest(unittest.TestCase):
 
             self.assertEqual(output.strip(), "gemini-primary-ok")
             self.assertIn("--model gemini-3-pro-preview", gemini_args)
-            self.assertIn("--approval-mode plan", gemini_args)
+            self.assertIn("--output-format json", gemini_args)
+            self.assertNotIn("--approval-mode plan", gemini_args)
             self.assertIn("What storage should we use?", gemini_args)
             self.assertTrue(gemini_path.startswith(str(bin_dir)))
 
@@ -153,7 +154,7 @@ class ConsultScriptTest(unittest.TestCase):
                 "  printf '429 RESOURCE_EXHAUSTED No capacity available for model\\n' >&2\n"
                 "  exit 1\n"
                 "fi\n"
-                "printf 'gemini-fallback-ok\\n'\n"
+                "printf '{\"response\":\"gemini-fallback-ok\"}\\n'\n"
             )
             gemini.chmod(0o755)
 
@@ -177,6 +178,8 @@ class ConsultScriptTest(unittest.TestCase):
             self.assertEqual(output.strip(), "gemini-fallback-ok")
             self.assertIn("--model gemini-3-pro-preview", gemini_args_1)
             self.assertIn("--model gemini-2.5-pro", gemini_args_2)
+            self.assertIn("--output-format json", gemini_args_1)
+            self.assertIn("--output-format json", gemini_args_2)
             self.assertTrue(gemini_path_1.startswith(str(bin_dir)))
             self.assertTrue(gemini_path_2.startswith(str(bin_dir)))
 
