@@ -93,14 +93,21 @@ Autonomous outer loop that implements every feature in a PRD.md with a single bo
    - Tests each CLI with `--version` (fast, no API call)
    - Two levels: **external CLI** (real second opinion) vs **self-reasoning** (fallback)
    - **Ask the user to choose** (or confirm the recommended default). This is the only operational question autopilot asks before the autonomous run begins.
-   - Ask plainly in one short message which consultant to use for second opinions.
-   - Do not read the PRD, summarize features, or perform any other work before the user answers.
-   - Stop after asking the consultant question and wait for the user's choice.
+   - Keep the prompt short and picker-like. Do not read the PRD, summarize features, or perform any other work before the user answers.
+   - Stop after printing the consultant picker and wait for the user's choice.
 
    *Example — external CLIs found:*
    ```
-   Which consultant should I use for second opinions?
-   Options: claude:opus (recommended), claude:sonnet, codex.
+   🔍 Consultant detection:
+     ✅ claude:opus   — available ⭐ recommended
+                        Opus = reasoning upgrade over orchestrating Sonnet
+     ✅ claude:sonnet — available (same model family as orchestrator)
+     ✅ codex         — available (different model family)
+     ❌ gemini        — not found
+     ❌ copilot       — not found
+     ❌ cursor        — not found
+
+   Choose consultant: [claude:opus] [claude:sonnet] [codex]
    Press Enter for claude:opus.
    ```
 

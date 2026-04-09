@@ -18,9 +18,11 @@ class SkillDocTest(unittest.TestCase):
     def test_consultant_selection_requires_waiting_for_user_choice(self):
         content = SKILL_DOC.read_text()
         self.assertIn(
-            "Stop after asking the consultant question and wait for the user's choice.",
+            "Stop after printing the consultant picker and wait for the user's choice.",
             content,
         )
+        self.assertIn("Choose consultant: [claude:opus] [claude:sonnet] [codex]", content)
+        self.assertNotIn("Which consultant should I use for second opinions?", content)
 
     def test_skill_uses_single_startup_commands_without_shell_decorations(self):
         content = SKILL_DOC.read_text()
