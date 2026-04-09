@@ -56,6 +56,19 @@ GEMINI_FALLBACK_MODEL="${AUTOPILOT_GEMINI_FALLBACK_MODEL:-gemini-2.5-pro}"
 CURSOR_PRIMARY_MODEL="${AUTOPILOT_CURSOR_PRIMARY_MODEL:-gemini-3-pro}"
 CURSOR_FALLBACK_MODEL="${AUTOPILOT_CURSOR_FALLBACK_MODEL:-composer-2-fast}"
 
+run_with_cli_node_first() {
+  local cli_bin="$1"
+  shift
+  local cli_dir=""
+  cli_dir="$(dirname "$cli_bin")"
+
+  if [[ -x "$cli_dir/node" ]]; then
+    PATH="$cli_dir:$PATH" run_with_timeout "$TIMEOUT" "$cli_bin" "$@"
+  else
+    run_with_timeout "$TIMEOUT" "$cli_bin" "$@"
+  fi
+}
+
 run_codex_consult() {
   local codex_bin="$1"
   local temp_dir=""
@@ -120,7 +133,7 @@ run_gemini_consult() {
     : >"$stderr_file"
 
     set +e
-    run_with_timeout "$TIMEOUT" "$gemini_bin" --model "$model" -p "$FULL_PROMPT" --approval-mode plan \
+    run_with_cli_node_first "$gemini_bin" --model "$model" -p "$FULL_PROMPT" --approval-mode plan \
       >"$stdout_file" 2>"$stderr_file"
     status=$?
     set -e

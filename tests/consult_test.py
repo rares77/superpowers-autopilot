@@ -94,6 +94,7 @@ class ConsultScriptTest(unittest.TestCase):
                 "  exit 0\n"
                 "fi\n"
                 "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/gemini_args_1.txt\"\n"
+                "printf '%s\\n' \"$PATH\" > \"$RECORDER_DIR/gemini_path_1.txt\"\n"
                 "printf 'gemini-primary-ok\\n'\n"
             )
             gemini.chmod(0o755)
@@ -111,11 +112,13 @@ class ConsultScriptTest(unittest.TestCase):
             )
 
             gemini_args = (recorder_dir / "gemini_args_1.txt").read_text().strip()
+            gemini_path = (recorder_dir / "gemini_path_1.txt").read_text().strip()
 
             self.assertEqual(output.strip(), "gemini-primary-ok")
             self.assertIn("--model gemini-3-pro-preview", gemini_args)
             self.assertIn("--approval-mode plan", gemini_args)
             self.assertIn("What storage should we use?", gemini_args)
+            self.assertTrue(gemini_path.startswith(str(bin_dir)))
 
     def test_gemini_falls_back_to_second_model_on_capacity_errors(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -145,6 +148,7 @@ class ConsultScriptTest(unittest.TestCase):
                 "count=$((count + 1))\n"
                 "printf '%s' \"$count\" > \"$count_file\"\n"
                 "printf '%s\\n' \"$*\" > \"$RECORDER_DIR/gemini_args_${count}.txt\"\n"
+                "printf '%s\\n' \"$PATH\" > \"$RECORDER_DIR/gemini_path_${count}.txt\"\n"
                 "if [[ \"$count\" -eq 1 ]]; then\n"
                 "  printf '429 RESOURCE_EXHAUSTED No capacity available for model\\n' >&2\n"
                 "  exit 1\n"
@@ -167,10 +171,14 @@ class ConsultScriptTest(unittest.TestCase):
 
             gemini_args_1 = (recorder_dir / "gemini_args_1.txt").read_text().strip()
             gemini_args_2 = (recorder_dir / "gemini_args_2.txt").read_text().strip()
+            gemini_path_1 = (recorder_dir / "gemini_path_1.txt").read_text().strip()
+            gemini_path_2 = (recorder_dir / "gemini_path_2.txt").read_text().strip()
 
             self.assertEqual(output.strip(), "gemini-fallback-ok")
             self.assertIn("--model gemini-3-pro-preview", gemini_args_1)
             self.assertIn("--model gemini-2.5-pro", gemini_args_2)
+            self.assertTrue(gemini_path_1.startswith(str(bin_dir)))
+            self.assertTrue(gemini_path_2.startswith(str(bin_dir)))
 
     def test_cursor_uses_explicit_primary_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
