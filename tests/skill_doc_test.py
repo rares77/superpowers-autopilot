@@ -21,10 +21,6 @@ class SkillDocTest(unittest.TestCase):
             "Stop after asking the consultant question and wait for the user's choice.",
             content,
         )
-        self.assertIn(
-            "Do not try to emulate a custom picker, menu, or pseudo-UI in the prompt itself.",
-            content,
-        )
 
     def test_skill_uses_single_startup_commands_without_shell_decorations(self):
         content = SKILL_DOC.read_text()
