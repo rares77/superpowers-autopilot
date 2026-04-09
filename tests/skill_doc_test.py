@@ -18,7 +18,11 @@ class SkillDocTest(unittest.TestCase):
     def test_consultant_selection_requires_waiting_for_user_choice(self):
         content = SKILL_DOC.read_text()
         self.assertIn(
-            "Stop after printing the consultant picker and wait for the user's choice.",
+            "Stop after asking the consultant question and wait for the user's choice.",
+            content,
+        )
+        self.assertIn(
+            "Do not try to emulate a custom picker, menu, or pseudo-UI in the prompt itself.",
             content,
         )
 
